@@ -6,11 +6,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const handleLogin = async () => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      setError('メールアドレスまたはパスワードが違います')
+      setError('メールアドレスまたはパスワードが違います: ' + error.message)
+    } else if (data.session) {
+      window.location.replace('/')
     } else {
-      window.location.href = '/'
+      setError('セッションが取得できませんでした')
     }
   }
   return (
