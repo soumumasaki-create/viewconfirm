@@ -32,7 +32,7 @@ export default function Home() {
         <p style={{ color:'#94a3b8', marginBottom:'40px' }}>ようこそ！{email} さん</p>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap:'20px' }}>
           <a href="/watch" style={{ textDecoration:'none' }}>
-            <div style={{ backgroundColor:'#1e293b', border:'1px solid #334155', borderRadius:'16px', padding:'32px', cursor:'pointer', transition:'all 0.2s' }}>
+            <div style={{ backgroundColor:'#1e293b', border:'1px solid #334155', borderRadius:'16px', padding:'32px', cursor:'pointer' }}>
               <div style={{ fontSize:'40px', marginBottom:'16px' }}>📺</div>
               <h3 style={{ fontSize:'18px', marginBottom:'8px', color:'#fff' }}>動画を視聴する</h3>
               <p style={{ color:'#94a3b8', fontSize:'14px' }}>教育動画を見て視聴完了を記録する</p>
@@ -50,6 +50,13 @@ export default function Home() {
               <div style={{ fontSize:'40px', marginBottom:'16px' }}>🎬</div>
               <h3 style={{ fontSize:'18px', marginBottom:'8px', color:'#fff' }}>動画管理</h3>
               <p style={{ color:'#94a3b8', fontSize:'14px' }}>動画の追加・編集</p>
+            </div>
+          </a>
+          <a href="/admin" style={{ textDecoration:'none' }}>
+            <div style={{ backgroundColor:'#1e293b', border:'1px solid #334155', borderRadius:'16px', padding:'32px', cursor:'pointer' }}>
+              <div style={{ fontSize:'40px', marginBottom:'16px' }}>📊</div>
+              <h3 style={{ fontSize:'18px', marginBottom:'8px', color:'#fff' }}>管理者ダッシュボード</h3>
+              <p style={{ color:'#94a3b8', fontSize:'14px' }}>視聴記録の確認・CSV出力</p>
             </div>
           </a>
         </div>
