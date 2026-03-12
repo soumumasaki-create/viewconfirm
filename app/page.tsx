@@ -25,7 +25,6 @@ export default function Home() {
 
   return (
     <div style={{ minHeight:'100vh', backgroundColor:'#f8fafc', color:'#0f172a', fontFamily:'sans-serif' }}>
-      {/* ヘッダー */}
       <header style={{ backgroundColor:'#1e3a5f', borderBottom:'1px solid #1e3a5f', padding:'0 40px', height:'64px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
           <div style={{ width:'36px', height:'36px', backgroundColor:'#2563eb', borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>📺</div>
@@ -41,14 +40,12 @@ export default function Home() {
         </div>
       </header>
 
-      {/* メインコンテンツ */}
       <main style={{ padding:'48px 40px', maxWidth:'1000px', margin:'0 auto' }}>
         <div style={{ marginBottom:'40px', paddingBottom:'32px', borderBottom:'1px solid #e2e8f0' }}>
           <h2 style={{ fontSize:'22px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'6px' }}>人材教育プラットフォーム</h2>
           <p style={{ color:'#64748b', fontSize:'14px' }}>ようこそ、{email} さん</p>
         </div>
 
-        {/* 社員向け */}
         <div style={{ marginBottom:'40px' }}>
           <h3 style={{ fontSize:'12px', color:'#94a3b8', letterSpacing:'0.1em', marginBottom:'16px' }}>動画視聴</h3>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:'16px' }}>
@@ -64,7 +61,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 管理者向け */}
         {isAdmin && (
           <div>
             <h3 style={{ fontSize:'12px', color:'#94a3b8', letterSpacing:'0.1em', marginBottom:'16px' }}>管理者メニュー</h3>
@@ -96,12 +92,20 @@ export default function Home() {
                   </div>
                 </div>
               </a>
+              <a href="/admin-users" style={{ textDecoration:'none' }}>
+                <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'28px', cursor:'pointer', display:'flex', alignItems:'center', gap:'20px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
+                  <div style={{ width:'52px', height:'52px', backgroundColor:'#1e3a5f', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'24px', flexShrink:0 }}>👤</div>
+                  <div>
+                    <div style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'4px' }}>管理者ユーザー管理</div>
+                    <div style={{ fontSize:'13px', color:'#64748b' }}>管理者の追加・削除</div>
+                  </div>
+                </div>
+              </a>
             </div>
           </div>
         )}
       </main>
 
-      {/* フッター */}
       <footer style={{ borderTop:'1px solid #e2e8f0', padding:'20px 40px', textAlign:'center' }}>
         <p style={{ color:'#94a3b8', fontSize:'12px' }}>© 2026 MIRAI Group. ViewConfirm.</p>
       </footer>
