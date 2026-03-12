@@ -1,8 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+
 type Channel = { id: number; title: string }
 type Episode = { id: number; title: string; video_url: string; channel_id: number; order_no: number }
+
 export default function WatchPage() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [episodes, setEpisodes] = useState<Episode[]>([])
@@ -14,6 +16,7 @@ export default function WatchPage() {
   const [watched, setWatched] = useState(false)
   const [loading, setLoading] = useState(false)
   const [watchLogs, setWatchLogs] = useState<{episode_id:number}[]>([])
+
   useEffect(() => {
     const fetchData = async () => {
       const { data: ch } = await supabase.from('channels').select('*').order('id')
@@ -25,10 +28,12 @@ export default function WatchPage() {
     }
     fetchData()
   }, [])
+
   const handleSelectEpisode = (ep: Episode) => {
     setSelectedEpisode(ep)
     setWatched(false)
   }
+
   const handleComplete = async () => {
     if (!userName || !companyId || !selectedEpisode) return
     setLoading(true)
@@ -42,10 +47,11 @@ export default function WatchPage() {
     setWatchLogs([...watchLogs, { episode_id: selectedEpisode.id }])
     setLoading(false)
   }
+
   const channelEpisodes = selectedChannel ? episodes.filter(ep => ep.channel_id === selectedChannel) : []
+
   return (
     <div style={{ minHeight:'100vh', backgroundColor:'#f8fafc', fontFamily:'sans-serif' }}>
-      {/* ヘッダー */}
       <header style={{ backgroundColor:'#1e3a5f', padding:'0 40px', height:'64px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
           <div style={{ width:'36px', height:'36px', backgroundColor:'#2563eb', borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>📺</div>
@@ -56,6 +62,7 @@ export default function WatchPage() {
         </div>
         <a href="/" style={{ color:'#93c5fd', fontSize:'13px', textDecoration:'none' }}>← トップに戻る</a>
       </header>
+
       <main style={{ display:'flex', height:'calc(100vh - 64px)' }}>
         {/* サイドバー */}
         <div style={{ width:'240px', backgroundColor:'#fff', borderRight:'1px solid #e2e8f0', padding:'24px 16px', overflowY:'auto' }}>
@@ -67,6 +74,7 @@ export default function WatchPage() {
             </div>
           ))}
         </div>
+
         {/* メインエリア */}
         <div style={{ flex:1, padding:'32px', overflowY:'auto' }}>
           {!selectedChannel && (
@@ -74,6 +82,7 @@ export default function WatchPage() {
               <p style={{ color:'#94a3b8', fontSize:'16px' }}>← 左のチャンネルを選んでください</p>
             </div>
           )}
+
           {selectedChannel && !selectedEpisode && (
             <div>
               <h2 style={{ fontSize:'18px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>動画一覧</h2>
@@ -93,13 +102,24 @@ export default function WatchPage() {
               })}
             </div>
           )}
+
           {selectedEpisode && (
             <div>
               <button onClick={() => setSelectedEpisode(null)} style={{ marginBottom:'20px', color:'#2563eb', background:'none', border:'none', cursor:'pointer', fontSize:'14px' }}>← 動画一覧に戻る</button>
               <h2 style={{ fontSize:'20px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>{selectedEpisode.title}</h2>
+
               {selectedEpisode.video_url && (
-                <iframe width="100%" height="400" src={selectedEpisode.video_url} frameBorder="0" allowFullScreen style={{ borderRadius:'12px', marginBottom:'24px', boxShadow:'0 4px 12px rgba(0,0,0,0.1)' }} />
+                <iframe
+                  width="100%"
+                  height="400"
+                  src={selectedEpisode.video_url}
+                  frameBorder="0"
+                  allowFullScreen
+                  allow="autoplay"
+                  style={{ borderRadius:'12px', marginBottom:'24px', boxShadow:'0 4px 12px rgba(0,0,0,0.1)' }}
+                />
               )}
+
               {!watched ? (
                 <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'28px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
                   <h3 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>視聴完了を記録する</h3>
