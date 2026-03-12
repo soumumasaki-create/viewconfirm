@@ -44,33 +44,50 @@ export default function WatchPage() {
   }
   const channelEpisodes = selectedChannel ? episodes.filter(ep => ep.channel_id === selectedChannel) : []
   return (
-    <div style={{ padding:'24px', maxWidth:'900px', margin:'0 auto' }}>
-      <h1 style={{ fontSize:'24px', marginBottom:'24px', color:'#1d4ed8' }}>📺 動画視聴</h1>
-      <div style={{ display:'flex', gap:'24px' }}>
-        <div style={{ width:'240px', flexShrink:0 }}>
-          <h2 style={{ fontSize:'16px', marginBottom:'12px', color:'#000' }}>チャンネル</h2>
+    <div style={{ minHeight:'100vh', backgroundColor:'#f8fafc', fontFamily:'sans-serif' }}>
+      {/* ヘッダー */}
+      <header style={{ backgroundColor:'#1e3a5f', padding:'0 40px', height:'64px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+          <div style={{ width:'36px', height:'36px', backgroundColor:'#2563eb', borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>📺</div>
+          <div>
+            <div style={{ fontSize:'16px', fontWeight:'bold', color:'#fff' }}>ViewConfirm</div>
+            <div style={{ fontSize:'10px', color:'#93c5fd', letterSpacing:'0.1em' }}>MIRAI GROUP</div>
+          </div>
+        </div>
+        <a href="/" style={{ color:'#93c5fd', fontSize:'13px', textDecoration:'none' }}>← トップに戻る</a>
+      </header>
+      <main style={{ display:'flex', height:'calc(100vh - 64px)' }}>
+        {/* サイドバー */}
+        <div style={{ width:'240px', backgroundColor:'#fff', borderRight:'1px solid #e2e8f0', padding:'24px 16px', overflowY:'auto' }}>
+          <h2 style={{ fontSize:'12px', color:'#94a3b8', letterSpacing:'0.1em', marginBottom:'12px' }}>チャンネル</h2>
           {channels.map(ch => (
             <div key={ch.id} onClick={() => { setSelectedChannel(ch.id); setSelectedEpisode(null) }}
-              style={{ padding:'10px', borderRadius:'8px', marginBottom:'8px', cursor:'pointer', backgroundColor: selectedChannel === ch.id ? '#2563eb' : '#f1f5f9', color: selectedChannel === ch.id ? '#fff' : '#000' }}>
+              style={{ padding:'10px 14px', borderRadius:'8px', marginBottom:'6px', cursor:'pointer', backgroundColor: selectedChannel === ch.id ? '#1e3a5f' : 'transparent', color: selectedChannel === ch.id ? '#fff' : '#1e3a5f', fontWeight: selectedChannel === ch.id ? 'bold' : 'normal', fontSize:'14px' }}>
               {ch.title}
             </div>
           ))}
         </div>
-        <div style={{ flex:1 }}>
-          {!selectedChannel && <p style={{ color:'#94a3b8' }}>左のチャンネルを選んでください</p>}
+        {/* メインエリア */}
+        <div style={{ flex:1, padding:'32px', overflowY:'auto' }}>
+          {!selectedChannel && (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%' }}>
+              <p style={{ color:'#94a3b8', fontSize:'16px' }}>← 左のチャンネルを選んでください</p>
+            </div>
+          )}
           {selectedChannel && !selectedEpisode && (
             <div>
-              <h2 style={{ fontSize:'16px', marginBottom:'12px', color:'#000' }}>動画一覧</h2>
+              <h2 style={{ fontSize:'18px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>動画一覧</h2>
               {channelEpisodes.length === 0 && <p style={{ color:'#94a3b8' }}>動画がありません</p>}
               {channelEpisodes.map((ep, index) => {
                 const isLocked = index > 0 && !watchLogs.find(w => w.episode_id === channelEpisodes[index-1].id)
+                const isWatched = watchLogs.find(w => w.episode_id === ep.id)
                 return (
                   <div key={ep.id} onClick={() => !isLocked && handleSelectEpisode(ep)}
-                    style={{ padding:'12px', borderRadius:'8px', marginBottom:'8px', cursor: isLocked ? 'not-allowed' : 'pointer', backgroundColor: isLocked ? '#f8fafc' : '#fff', border:'1px solid #e2e8f0', opacity: isLocked ? 0.5 : 1 }}>
-                    <span style={{ color:'#94a3b8', marginRight:'8px' }}>#{ep.order_no}</span>
-                    <span style={{ color:'#000' }}>{ep.title}</span>
-                    {isLocked && <span style={{ marginLeft:'8px', fontSize:'12px', color:'#94a3b8' }}>🔒</span>}
-                    {watchLogs.find(w => w.episode_id === ep.id) && <span style={{ marginLeft:'8px', fontSize:'12px', color:'#16a34a' }}>✅</span>}
+                    style={{ backgroundColor:'#fff', border:`1px solid ${isWatched ? '#86efac' : '#e2e8f0'}`, borderRadius:'10px', padding:'16px 20px', marginBottom:'10px', cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.5 : 1, display:'flex', alignItems:'center', gap:'16px', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
+                    <span style={{ fontSize:'12px', color:'#fff', backgroundColor: isWatched ? '#16a34a' : '#2563eb', padding:'2px 8px', borderRadius:'4px', fontWeight:'bold' }}>#{ep.order_no}</span>
+                    <span style={{ fontSize:'15px', color:'#1e3a5f', fontWeight:'500', flex:1 }}>{ep.title}</span>
+                    {isLocked && <span style={{ fontSize:'12px', color:'#94a3b8' }}>🔒 前の動画を完了してください</span>}
+                    {isWatched && <span style={{ fontSize:'13px', color:'#16a34a', fontWeight:'bold' }}>✅ 完了</span>}
                   </div>
                 )
               })}
@@ -78,34 +95,39 @@ export default function WatchPage() {
           )}
           {selectedEpisode && (
             <div>
-              <button onClick={() => setSelectedEpisode(null)} style={{ marginBottom:'16px', color:'#2563eb', background:'none', border:'none', cursor:'pointer' }}>← 動画一覧に戻る</button>
-              <h2 style={{ fontSize:'18px', marginBottom:'16px', color:'#000' }}>{selectedEpisode.title}</h2>
+              <button onClick={() => setSelectedEpisode(null)} style={{ marginBottom:'20px', color:'#2563eb', background:'none', border:'none', cursor:'pointer', fontSize:'14px' }}>← 動画一覧に戻る</button>
+              <h2 style={{ fontSize:'20px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>{selectedEpisode.title}</h2>
               {selectedEpisode.video_url && (
-                <iframe width="100%" height="360" src={selectedEpisode.video_url.replace('watch?v=', 'embed/')} frameBorder="0" allowFullScreen style={{ borderRadius:'8px', marginBottom:'16px' }} />
+                <iframe width="100%" height="400" src={selectedEpisode.video_url} frameBorder="0" allowFullScreen style={{ borderRadius:'12px', marginBottom:'24px', boxShadow:'0 4px 12px rgba(0,0,0,0.1)' }} />
               )}
               {!watched ? (
-                <div style={{ backgroundColor:'#f1f5f9', padding:'20px', borderRadius:'12px' }}>
-                  <h3 style={{ fontSize:'16px', marginBottom:'12px', color:'#000' }}>視聴完了を記録する</h3>
-                  <input placeholder="お名前" value={userName} onChange={(e) => setUserName(e.target.value)} style={{ width:'100%', padding:'10px', borderRadius:'8px', border:'1px solid #cbd5e1', marginBottom:'12px', fontSize:'16px', color:'#000', backgroundColor:'#fff', boxSizing:'border-box' }} />
-                  <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} style={{ width:'100%', padding:'10px', borderRadius:'8px', border:'1px solid #cbd5e1', marginBottom:'12px', fontSize:'16px', color:'#000', backgroundColor:'#fff' }}>
-                    <option value="">会社を選択</option>
-                    {companies.map(co => <option key={co.id} value={co.id}>{co.name}</option>)}
-                  </select>
-                  <button onClick={handleComplete} disabled={loading} style={{ width:'100%', padding:'12px', backgroundColor:'#16a34a', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'16px' }}>{loading ? '記録中...' : '✅ 視聴完了'}</button>
+                <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'28px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
+                  <h3 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>視聴完了を記録する</h3>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', marginBottom:'20px' }}>
+                    <div>
+                      <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>お名前</label>
+                      <input placeholder="山田 太郎" value={userName} onChange={(e) => setUserName(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>会社</label>
+                      <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc' }}>
+                        <option value="">選択してください</option>
+                        {companies.map(co => <option key={co.id} value={co.id}>{co.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <button onClick={handleComplete} disabled={loading} style={{ width:'100%', padding:'13px', backgroundColor:'#16a34a', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'16px', fontWeight:'bold' }}>{loading ? '記録中...' : '✅ 視聴完了'}</button>
                 </div>
               ) : (
-                <div style={{ backgroundColor:'#dcfce7', padding:'20px', borderRadius:'12px', textAlign:'center' }}>
-                  <p style={{ fontSize:'18px', color:'#16a34a' }}>✅ 視聴完了を記録しました！</p>
-                  <button onClick={() => setSelectedEpisode(null)} style={{ marginTop:'12px', padding:'10px 24px', backgroundColor:'#2563eb', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer' }}>次の動画へ</button>
+                <div style={{ backgroundColor:'#f0fdf4', border:'1px solid #86efac', borderRadius:'12px', padding:'32px', textAlign:'center' }}>
+                  <p style={{ fontSize:'20px', color:'#16a34a', fontWeight:'bold', marginBottom:'16px' }}>✅ 視聴完了を記録しました！</p>
+                  <button onClick={() => setSelectedEpisode(null)} style={{ padding:'10px 28px', backgroundColor:'#1e3a5f', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'15px' }}>次の動画へ</button>
                 </div>
               )}
             </div>
           )}
         </div>
-      </div>
-      <div style={{ marginTop:'32px' }}>
-        <a href="/" style={{ color:'#2563eb' }}>← トップに戻る</a>
-      </div>
+      </main>
     </div>
   )
 }
