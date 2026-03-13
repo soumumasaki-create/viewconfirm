@@ -16,6 +16,7 @@ export default function WatchPage() {
   const [watched, setWatched] = useState(false)
   const [loading, setLoading] = useState(false)
   const [watchLogs, setWatchLogs] = useState<{episode_id:number}[]>([])
+  const [isEmployee, setIsEmployee] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -25,9 +26,20 @@ export default function WatchPage() {
       if (ep) setEpisodes(ep)
       const { data: co } = await supabase.from('companies').select('*').order('id')
       if (co) setCompanies(co)
+
+      // ログインユーザーが社員かどうか確認
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.email?.endsWith('@viewconfirm.internal')) {
+        setIsEmployee(true)
+      }
     }
     fetchData()
   }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/employee-login'
+  }
 
   const handleSelectEpisode = (ep: Episode) => {
     setSelectedEpisode(ep)
@@ -69,7 +81,11 @@ export default function WatchPage() {
             <div style={{ fontSize:'10px', color:'#93c5fd', letterSpacing:'0.1em' }}>MIRAI GROUP</div>
           </div>
         </div>
-        <a href="/" style={{ color:'#93c5fd', fontSize:'13px', textDecoration:'none' }}>← トップに戻る</a>
+        {isEmployee ? (
+          <button onClick={handleLogout} style={{ padding:'7px 16px', backgroundColor:'transparent', color:'#fff', border:'1px solid #93c5fd', borderRadius:'6px', cursor:'pointer', fontSize:'13px' }}>ログアウト</button>
+        ) : (
+          <a href="/" style={{ color:'#93c5fd', fontSize:'13px', textDecoration:'none' }}>← トップに戻る</a>
+        )}
       </header>
 
       <main style={{ display:'flex', height:'calc(100vh - 64px)' }}>
