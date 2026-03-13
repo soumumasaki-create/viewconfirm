@@ -5,28 +5,39 @@ import { supabase } from '../../lib/supabase'
 export default function EmployeeLoginPage() {
   const [lastName, setLastName] = useState('')
   const [firstName, setFirstName] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const handleLogin = async () => {
-    if (!lastName || !firstName) {
-      setError('姓と名を入力してください')
+    if (!lastName || !firstName || !password) {
+      setError('姓・名・パスワードを入力してください')
       return
     }
     setLoading(true)
     setError('')
 
-    const lastRoman = encodeURIComponent(lastName).replace(/%/g, '').toLowerCase()
-    const firstRoman = encodeURIComponent(firstName).replace(/%/g, '').toLowerCase()
-    const email = `${lastRoman}_${firstRoman}@viewconfirm.internal`
+    // employeesテーブルから氏名でemailを取得
+    const { data: emp, error: empError } = await supabase
+      .from('employees')
+      .select('email')
+      .eq('last_name', lastName)
+      .eq('first_name', firstName)
+      .single()
+
+    if (empError || !emp?.email) {
+      setError('氏名が正しくありません。管理者に登録を依頼してください。')
+      setLoading(false)
+      return
+    }
 
     const { error: loginError } = await supabase.auth.signInWithPassword({
-      email,
-      password: '1234',
+      email: emp.email,
+      password,
     })
 
     if (loginError) {
-      setError('氏名が正しくありません。管理者に登録を依頼してください。')
+      setError('パスワードが正しくありません。')
       setLoading(false)
       return
     }
@@ -51,7 +62,7 @@ export default function EmployeeLoginPage() {
           <div style={{ textAlign:'center', marginBottom:'32px' }}>
             <div style={{ width:'64px', height:'64px', backgroundColor:'#2563eb', borderRadius:'16px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'32px', margin:'0 auto 16px' }}>👤</div>
             <h1 style={{ fontSize:'22px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'6px' }}>社員ログイン</h1>
-            <p style={{ fontSize:'13px', color:'#64748b' }}>氏名を入力してログインしてください</p>
+            <p style={{ fontSize:'13px', color:'#64748b' }}>氏名とパスワードを入力してください</p>
           </div>
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginBottom:'16px' }}>
@@ -61,7 +72,6 @@ export default function EmployeeLoginPage() {
                 placeholder="例：山田"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 style={{ width:'100%', padding:'12px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }}
               />
             </div>
@@ -71,10 +81,21 @@ export default function EmployeeLoginPage() {
                 placeholder="例：太郎"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 style={{ width:'100%', padding:'12px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }}
               />
             </div>
+          </div>
+
+          <div style={{ marginBottom:'20px' }}>
+            <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block', fontWeight:'600' }}>パスワード</label>
+            <input
+              type="password"
+              placeholder="パスワードを入力"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+              style={{ width:'100%', padding:'12px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }}
+            />
           </div>
 
           {error && (
