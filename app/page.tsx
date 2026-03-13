@@ -83,15 +83,16 @@ export default function Home() {
                   </div>
                 </div>
               </a>
-              <a href="/admin" style={{ textDecoration:'none' }}>
+              <a href="/admin-dashboard" style={{ textDecoration:'none' }}>
                 <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'28px', cursor:'pointer', display:'flex', alignItems:'center', gap:'20px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
                   <div style={{ width:'52px', height:'52px', backgroundColor:'#1e3a5f', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'24px', flexShrink:0 }}>📊</div>
                   <div>
-                    <div style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'4px' }}>管理者ダッシュボード</div>
-                    <div style={{ fontSize:'13px', color:'#64748b' }}>視聴記録の確認・CSV出力</div>
+                    <div style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'4px' }}>視聴状況ダッシュボード</div>
+                    <div style={{ fontSize:'13px', color:'#64748b' }}>会社・動画別の視聴状況確認</div>
                   </div>
                 </div>
-              </a><a href="/admin-employees" style={{ textDecoration:'none' }}>
+              </a>
+              <a href="/admin-employees" style={{ textDecoration:'none' }}>
                 <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'28px', cursor:'pointer', display:'flex', alignItems:'center', gap:'20px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
                   <div style={{ width:'52px', height:'52px', backgroundColor:'#1e3a5f', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'24px', flexShrink:0 }}>👥</div>
                   <div>
