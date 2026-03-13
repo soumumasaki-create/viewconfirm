@@ -4,13 +4,20 @@ import { supabase } from '../../lib/supabase'
 
 type Channel = { id: number; title: string; thumbnail_url: string }
 type Episode = { id: number; title: string; video_url: string; channel_id: number; order_no: number }
+type NamePair = { last: string; first: string }
 
 export default function WatchPage() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [episodes, setEpisodes] = useState<Episode[]>([])
   const [selectedChannel, setSelectedChannel] = useState<number | null>(null)
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null)
-  const [userNames, setUserNames] = useState(['', '', '', '', ''])
+  const [myName, setMyName] = useState('')
+  const [subNames, setSubNames] = useState<NamePair[]>([
+    { last:'', first:'' },
+    { last:'', first:'' },
+    { last:'', first:'' },
+    { last:'', first:'' },
+  ])
   const [companyId, setCompanyId] = useState('')
   const [companies, setCompanies] = useState<{id:number, name:string}[]>([])
   const [watched, setWatched] = useState(false)
@@ -28,11 +35,9 @@ export default function WatchPage() {
       const { data: co } = await supabase.from('companies').select('*').order('id')
       if (co) setCompanies(co)
 
-      // ログインユーザーが社員かどうか確認
       const { data: { user } } = await supabase.auth.getUser()
       if (user?.email?.endsWith('@viewconfirm.internal')) {
         setIsEmployee(true)
-        // employeesテーブルから氏名を取得
         const { data: emp } = await supabase
           .from('employees')
           .select('last_name, first_name, company')
@@ -41,18 +46,13 @@ export default function WatchPage() {
         if (emp) {
           const fullName = emp.last_name + ' ' + emp.first_name
           setLoginName(fullName)
-          setUserNames([fullName, '', '', '', ''])
-          // 会社を自動選択
+          setMyName(fullName)
           const { data: co2 } = await supabase.from('companies').select('*').eq('name', emp.company).single()
           if (co2) setCompanyId(String(co2.id))
         }
-        // 視聴ログを取得
-        const { data: wl } = await supabase.from('watch_logs').select('episode_id, user_name')
-        if (wl) setWatchLogs(wl)
-      } else {
-        const { data: wl } = await supabase.from('watch_logs').select('episode_id, user_name')
-        if (wl) setWatchLogs(wl)
       }
+      const { data: wl } = await supabase.from('watch_logs').select('episode_id, user_name')
+      if (wl) setWatchLogs(wl)
     }
     fetchData()
   }, [])
@@ -68,11 +68,18 @@ export default function WatchPage() {
   }
 
   const handleComplete = async () => {
-    if (!userNames[0] || !companyId || !selectedEpisode) return
+    if (!myName || !companyId || !selectedEpisode) return
     setLoading(true)
-    const filledNames = userNames.filter(name => name.trim() !== '')
+
+    const allNames = [
+      myName,
+      ...subNames
+        .filter(n => n.last.trim() !== '' || n.first.trim() !== '')
+        .map(n => (n.last + ' ' + n.first).trim())
+    ]
+
     const newLogs: {episode_id:number, user_name:string}[] = []
-    for (const name of filledNames) {
+    for (const name of allNames) {
       await supabase.from('watch_logs').insert({
         user_name: name,
         company_id: Number(companyId),
@@ -86,15 +93,14 @@ export default function WatchPage() {
     setLoading(false)
   }
 
-  const handleNameChange = (index: number, value: string) => {
-    const newNames = [...userNames]
-    newNames[index] = value
-    setUserNames(newNames)
+  const handleSubNameChange = (index: number, field: 'last' | 'first', value: string) => {
+    const newNames = [...subNames]
+    newNames[index][field] = value
+    setSubNames(newNames)
   }
 
   const channelEpisodes = selectedChannel ? episodes.filter(ep => ep.channel_id === selectedChannel) : []
 
-  // ログインした社員本人が視聴済みかどうかで判定
   const isEpisodeWatched = (episodeId: number) => {
     if (isEmployee && loginName) {
       return watchLogs.some(w => w.episode_id === episodeId && w.user_name === loginName)
@@ -125,7 +131,6 @@ export default function WatchPage() {
       </header>
 
       <main style={{ display:'flex', height:'calc(100vh - 64px)' }}>
-        {/* サイドバー */}
         <div style={{ width:'240px', backgroundColor:'#fff', borderRight:'1px solid #e2e8f0', padding:'16px', overflowY:'auto' }}>
           <h2 style={{ fontSize:'12px', color:'#94a3b8', letterSpacing:'0.1em', marginBottom:'12px' }}>チャンネル</h2>
           {channels.map(ch => (
@@ -143,7 +148,6 @@ export default function WatchPage() {
           ))}
         </div>
 
-        {/* メインエリア */}
         <div style={{ flex:1, padding:'32px', overflowY:'auto' }}>
           {!selectedChannel && (
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%' }}>
@@ -203,24 +207,41 @@ export default function WatchPage() {
                     </select>
                   </div>
 
-                  <div style={{ marginBottom:'20px' }}>
-                    {userNames.map((name, index) => (
-                      <div key={index} style={{ marginBottom:'10px' }}>
-                        <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>
-                          {index === 0 ? '氏名①（自分）' : `氏名${['②','③','④','⑤'][index-1]}（任意）`}
-                        </label>
-                        <input
-                          placeholder={index === 0 ? '' : '同時視聴者の氏名'}
-                          value={name}
-                          onChange={(e) => handleNameChange(index, e.target.value)}
-                          readOnly={index === 0 && isEmployee}
-                          style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:`1px solid ${index === 0 ? '#cbd5e1' : '#e2e8f0'}`, fontSize:'15px', color:'#0f172a', backgroundColor: index === 0 && isEmployee ? '#f1f5f9' : index === 0 ? '#f8fafc' : '#fafafa', boxSizing:'border-box' }}
-                        />
-                      </div>
-                    ))}
+                  {/* 自分の氏名 */}
+                  <div style={{ marginBottom:'16px' }}>
+                    <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block', fontWeight:'600' }}>氏名①（自分）</label>
+                    <input
+                      value={myName}
+                      readOnly={isEmployee}
+                      onChange={(e) => setMyName(e.target.value)}
+                      style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor: isEmployee ? '#f1f5f9' : '#f8fafc', boxSizing:'border-box' }}
+                    />
                   </div>
 
-                  <button onClick={handleComplete} disabled={loading} style={{ width:'100%', padding:'13px', backgroundColor:'#16a34a', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'16px', fontWeight:'bold' }}>
+                  {/* 同時視聴者 */}
+                  {subNames.map((name, index) => (
+                    <div key={index} style={{ marginBottom:'12px' }}>
+                      <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>
+                        氏名{['②','③','④','⑤'][index]}（任意）
+                      </label>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                        <input
+                          placeholder="姓"
+                          value={name.last}
+                          onChange={(e) => handleSubNameChange(index, 'last', e.target.value)}
+                          style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'15px', color:'#0f172a', backgroundColor:'#fafafa', boxSizing:'border-box' }}
+                        />
+                        <input
+                          placeholder="名"
+                          value={name.first}
+                          onChange={(e) => handleSubNameChange(index, 'first', e.target.value)}
+                          style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'15px', color:'#0f172a', backgroundColor:'#fafafa', boxSizing:'border-box' }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  <button onClick={handleComplete} disabled={loading} style={{ width:'100%', padding:'13px', backgroundColor:'#16a34a', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'16px', fontWeight:'bold', marginTop:'8px' }}>
                     {loading ? '記録中...' : '✅ 視聴完了'}
                   </button>
                 </div>
