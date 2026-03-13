@@ -80,7 +80,7 @@ export default function WatchPage() {
             <div key={ch.id} onClick={() => { setSelectedChannel(ch.id); setSelectedEpisode(null) }}
               style={{ borderRadius:'8px', marginBottom:'8px', cursor:'pointer', overflow:'hidden', border: selectedChannel === ch.id ? '2px solid #2563eb' : '1px solid #e2e8f0' }}>
               {ch.thumbnail_url ? (
-                <img src={ch.thumbnail_url} alt={ch.title} style={{ width:'100%', height:'80px', objectFit:'cover', display:'block' }} />
+                <img src={ch.thumbnail_url} alt={ch.title} style={{ width:'100%', objectFit:'contain', backgroundColor:'#f1f5f9', display:'block' }} />
               ) : (
                 <div style={{ width:'100%', height:'80px', backgroundColor:'#1e3a5f', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'28px' }}>📁</div>
               )}

@@ -74,7 +74,6 @@ export default function ChannelsPage() {
       <main style={{ padding:'40px', maxWidth:'900px', margin:'0 auto' }}>
         <h1 style={{ fontSize:'22px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'32px' }}>📁 チャンネル管理</h1>
 
-        {/* 追加フォーム */}
         <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'32px', marginBottom:'32px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
           <h2 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>新しいチャンネルを作成</h2>
 
@@ -92,7 +91,7 @@ export default function ChannelsPage() {
             <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>サムネイル画像（任意）</label>
             <input type="file" accept="image/*" onChange={handleFileChange} style={{ fontSize:'14px', color:'#475569' }} />
             {thumbnailPreview && (
-              <img src={thumbnailPreview} alt="プレビュー" style={{ marginTop:'12px', width:'120px', height:'80px', objectFit:'cover', borderRadius:'8px', border:'1px solid #e2e8f0' }} />
+              <img src={thumbnailPreview} alt="プレビュー" style={{ marginTop:'12px', width:'100%', objectFit:'contain', borderRadius:'8px', border:'1px solid #e2e8f0', backgroundColor:'#f1f5f9' }} />
             )}
           </div>
 
@@ -101,14 +100,13 @@ export default function ChannelsPage() {
           </button>
         </div>
 
-        {/* チャンネル一覧 */}
         <h2 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'16px' }}>チャンネル一覧</h2>
         {channels.length === 0 && <p style={{ color:'#94a3b8' }}>チャンネルがまだありません</p>}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:'16px' }}>
           {channels.map((ch) => (
             <div key={ch.id} style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
               {ch.thumbnail_url ? (
-                <img src={ch.thumbnail_url} alt={ch.title} style={{ width:'100%', height:'140px', objectFit:'cover' }} />
+                <img src={ch.thumbnail_url} alt={ch.title} style={{ width:'100%', objectFit:'contain', backgroundColor:'#f1f5f9' }} />
               ) : (
                 <div style={{ width:'100%', height:'140px', backgroundColor:'#1e3a5f', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'40px' }}>📁</div>
               )}
