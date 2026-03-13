@@ -15,8 +15,9 @@ export default function WatchPage() {
   const [companies, setCompanies] = useState<{id:number, name:string}[]>([])
   const [watched, setWatched] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [watchLogs, setWatchLogs] = useState<{episode_id:number}[]>([])
+  const [watchLogs, setWatchLogs] = useState<{episode_id:number, user_name:string}[]>([])
   const [isEmployee, setIsEmployee] = useState(false)
+  const [loginName, setLoginName] = useState('')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,6 +32,26 @@ export default function WatchPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user?.email?.endsWith('@viewconfirm.internal')) {
         setIsEmployee(true)
+        // employeesテーブルから氏名を取得
+        const { data: emp } = await supabase
+          .from('employees')
+          .select('last_name, first_name, company')
+          .eq('email', user.email)
+          .single()
+        if (emp) {
+          const fullName = emp.last_name + ' ' + emp.first_name
+          setLoginName(fullName)
+          setUserNames([fullName, '', '', '', ''])
+          // 会社を自動選択
+          const { data: co2 } = await supabase.from('companies').select('*').eq('name', emp.company).single()
+          if (co2) setCompanyId(String(co2.id))
+        }
+        // 視聴ログを取得
+        const { data: wl } = await supabase.from('watch_logs').select('episode_id, user_name')
+        if (wl) setWatchLogs(wl)
+      } else {
+        const { data: wl } = await supabase.from('watch_logs').select('episode_id, user_name')
+        if (wl) setWatchLogs(wl)
       }
     }
     fetchData()
@@ -50,6 +71,7 @@ export default function WatchPage() {
     if (!userNames[0] || !companyId || !selectedEpisode) return
     setLoading(true)
     const filledNames = userNames.filter(name => name.trim() !== '')
+    const newLogs: {episode_id:number, user_name:string}[] = []
     for (const name of filledNames) {
       await supabase.from('watch_logs').insert({
         user_name: name,
@@ -57,9 +79,10 @@ export default function WatchPage() {
         episode_id: selectedEpisode.id,
         watched_at: new Date().toISOString()
       })
+      newLogs.push({ episode_id: selectedEpisode.id, user_name: name })
     }
     setWatched(true)
-    setWatchLogs([...watchLogs, { episode_id: selectedEpisode.id }])
+    setWatchLogs([...watchLogs, ...newLogs])
     setLoading(false)
   }
 
@@ -71,6 +94,14 @@ export default function WatchPage() {
 
   const channelEpisodes = selectedChannel ? episodes.filter(ep => ep.channel_id === selectedChannel) : []
 
+  // ログインした社員本人が視聴済みかどうかで判定
+  const isEpisodeWatched = (episodeId: number) => {
+    if (isEmployee && loginName) {
+      return watchLogs.some(w => w.episode_id === episodeId && w.user_name === loginName)
+    }
+    return watchLogs.some(w => w.episode_id === episodeId)
+  }
+
   return (
     <div style={{ minHeight:'100vh', backgroundColor:'#f8fafc', fontFamily:'sans-serif' }}>
       <header style={{ backgroundColor:'#1e3a5f', padding:'0 40px', height:'64px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -81,11 +112,16 @@ export default function WatchPage() {
             <div style={{ fontSize:'10px', color:'#93c5fd', letterSpacing:'0.1em' }}>MIRAI GROUP</div>
           </div>
         </div>
-        {isEmployee ? (
-          <button onClick={handleLogout} style={{ padding:'7px 16px', backgroundColor:'transparent', color:'#fff', border:'1px solid #93c5fd', borderRadius:'6px', cursor:'pointer', fontSize:'13px' }}>ログアウト</button>
-        ) : (
-          <a href="/" style={{ color:'#93c5fd', fontSize:'13px', textDecoration:'none' }}>← トップに戻る</a>
-        )}
+        <div style={{ display:'flex', alignItems:'center', gap:'16px' }}>
+          {isEmployee && loginName && (
+            <span style={{ color:'#bfdbfe', fontSize:'13px' }}>{loginName}</span>
+          )}
+          {isEmployee ? (
+            <button onClick={handleLogout} style={{ padding:'7px 16px', backgroundColor:'transparent', color:'#fff', border:'1px solid #93c5fd', borderRadius:'6px', cursor:'pointer', fontSize:'13px' }}>ログアウト</button>
+          ) : (
+            <a href="/" style={{ color:'#93c5fd', fontSize:'13px', textDecoration:'none' }}>← トップに戻る</a>
+          )}
+        </div>
       </header>
 
       <main style={{ display:'flex', height:'calc(100vh - 64px)' }}>
@@ -120,8 +156,8 @@ export default function WatchPage() {
               <h2 style={{ fontSize:'18px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>動画一覧</h2>
               {channelEpisodes.length === 0 && <p style={{ color:'#94a3b8' }}>動画がありません</p>}
               {channelEpisodes.map((ep, index) => {
-                const isLocked = index > 0 && !watchLogs.find(w => w.episode_id === channelEpisodes[index-1].id)
-                const isWatched = watchLogs.find(w => w.episode_id === ep.id)
+                const isLocked = index > 0 && !isEpisodeWatched(channelEpisodes[index-1].id)
+                const isWatched = isEpisodeWatched(ep.id)
                 return (
                   <div key={ep.id} onClick={() => !isLocked && handleSelectEpisode(ep)}
                     style={{ backgroundColor:'#fff', border:`1px solid ${isWatched ? '#86efac' : '#e2e8f0'}`, borderRadius:'10px', padding:'16px 20px', marginBottom:'10px', cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.5 : 1, display:'flex', alignItems:'center', gap:'16px', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
@@ -155,11 +191,13 @@ export default function WatchPage() {
               {!watched ? (
                 <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'28px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
                   <h3 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'8px' }}>視聴完了を記録する</h3>
-                  <p style={{ fontSize:'13px', color:'#64748b', marginBottom:'20px' }}>※ 同時視聴の場合は全員分のお名前を入力してください（最大5名）</p>
+                  <p style={{ fontSize:'13px', color:'#64748b', marginBottom:'20px' }}>※ 同時視聴の場合は②以降にお名前を入力してください（最大5名）</p>
 
                   <div style={{ marginBottom:'20px' }}>
                     <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>会社（全員共通）</label>
-                    <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc' }}>
+                    <select value={companyId} onChange={(e) => setCompanyId(e.target.value)}
+                      disabled={isEmployee}
+                      style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor: isEmployee ? '#f1f5f9' : '#f8fafc' }}>
                       <option value="">選択してください</option>
                       {companies.map(co => <option key={co.id} value={co.id}>{co.name}</option>)}
                     </select>
@@ -169,13 +207,14 @@ export default function WatchPage() {
                     {userNames.map((name, index) => (
                       <div key={index} style={{ marginBottom:'10px' }}>
                         <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>
-                          {index === 0 ? '氏名①（必須）' : `氏名${['②','③','④','⑤'][index-1]}（任意）`}
+                          {index === 0 ? '氏名①（自分）' : `氏名${['②','③','④','⑤'][index-1]}（任意）`}
                         </label>
                         <input
-                          placeholder={index === 0 ? '山田 太郎' : ''}
+                          placeholder={index === 0 ? '' : '同時視聴者の氏名'}
                           value={name}
                           onChange={(e) => handleNameChange(index, e.target.value)}
-                          style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:`1px solid ${index === 0 ? '#cbd5e1' : '#e2e8f0'}`, fontSize:'15px', color:'#0f172a', backgroundColor: index === 0 ? '#f8fafc' : '#fafafa', boxSizing:'border-box' }}
+                          readOnly={index === 0 && isEmployee}
+                          style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:`1px solid ${index === 0 ? '#cbd5e1' : '#e2e8f0'}`, fontSize:'15px', color:'#0f172a', backgroundColor: index === 0 && isEmployee ? '#f1f5f9' : index === 0 ? '#f8fafc' : '#fafafa', boxSizing:'border-box' }}
                         />
                       </div>
                     ))}
