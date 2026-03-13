@@ -24,11 +24,8 @@ export default function AdminEmployeesPage() {
   }
 
   const fetchCompanies = async () => {
-    const { data } = await supabase.from('admins').select('company')
-    if (data) {
-      const unique = [...new Set(data.map((d) => d.company).filter(Boolean))]
-      setCompanies(unique)
-    }
+    const { data } = await supabase.from('companies').select('*').order('id')
+    if (data) setCompanies(data.map((d) => d.name))
   }
 
   const handleAdd = async () => {
@@ -80,7 +77,6 @@ export default function AdminEmployeesPage() {
       <main style={{ padding:'40px', maxWidth:'800px', margin:'0 auto' }}>
         <h1 style={{ fontSize:'22px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'32px' }}>👥 社員登録管理</h1>
 
-        {/* 追加フォーム */}
         <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'32px', marginBottom:'32px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
           <h2 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>社員を追加する</h2>
           <p style={{ fontSize:'13px', color:'#64748b', marginBottom:'16px' }}>※ 初回パスワードは「1234」が自動設定されます</p>
@@ -112,7 +108,6 @@ export default function AdminEmployeesPage() {
           </button>
         </div>
 
-        {/* 社員一覧 */}
         <h2 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'16px' }}>社員一覧</h2>
         <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
