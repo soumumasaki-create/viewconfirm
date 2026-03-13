@@ -5,50 +5,60 @@ import { supabase } from '../../lib/supabase'
 type Channel = { id: number; title: string }
 type Episode = { id: number; title: string; video_url: string; channel_id: number; order_no: number }
 
-export default function WatchPage() {
+export default function EpisodesPage() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [episodes, setEpisodes] = useState<Episode[]>([])
-  const [selectedChannel, setSelectedChannel] = useState<number | null>(null)
-  const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null)
-  const [userName, setUserName] = useState('')
-  const [companyId, setCompanyId] = useState('')
-  const [companies, setCompanies] = useState<{id:number, name:string}[]>([])
-  const [watched, setWatched] = useState(false)
+  const [channelId, setChannelId] = useState('')
+  const [title, setTitle] = useState('')
+  const [videoUrl, setVideoUrl] = useState('')
+  const [orderNo, setOrderNo] = useState('')
   const [loading, setLoading] = useState(false)
-  const [watchLogs, setWatchLogs] = useState<{episode_id:number}[]>([])
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const { data: ch } = await supabase.from('channels').select('*').order('id')
-      if (ch) setChannels(ch)
-      const { data: ep } = await supabase.from('episodes').select('*').order('order_no')
-      if (ep) setEpisodes(ep)
-      const { data: co } = await supabase.from('companies').select('*').order('id')
-      if (co) setCompanies(co)
-    }
-    fetchData()
-  }, [])
-
-  const handleSelectEpisode = (ep: Episode) => {
-    setSelectedEpisode(ep)
-    setWatched(false)
+  const fetchAll = async () => {
+    const { data: ch } = await supabase.from('channels').select('*').order('id')
+    if (ch) setChannels(ch)
+    const { data: ep } = await supabase.from('episodes').select('*').order('order_no')
+    if (ep) setEpisodes(ep)
   }
 
-  const handleComplete = async () => {
-    if (!userName || !companyId || !selectedEpisode) return
+  useEffect(() => { fetchAll() }, [])
+
+  const convertToEmbedUrl = (url: string) => {
+    const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/)
+    if (driveMatch) {
+      return `https://drive.google.com/file/d/${driveMatch[1]}/preview`
+    }
+    return url
+  }
+
+  const getVideoType = (url: string) => {
+    if (url.includes('drive.google.com')) return 'Google Drive'
+    if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube'
+    return 'その他'
+  }
+
+  const handleCreate = async () => {
+    if (!title || !channelId || !orderNo) return
     setLoading(true)
-    await supabase.from('watch_logs').insert({
-      user_name: userName,
-      company_id: Number(companyId),
-      episode_id: selectedEpisode.id,
-      watched_at: new Date().toISOString()
+    const embedUrl = convertToEmbedUrl(videoUrl)
+    await supabase.from('episodes').insert({
+      title,
+      video_url: embedUrl,
+      channel_id: Number(channelId),
+      order_no: Number(orderNo)
     })
-    setWatched(true)
-    setWatchLogs([...watchLogs, { episode_id: selectedEpisode.id }])
+    setTitle('')
+    setVideoUrl('')
+    setOrderNo('')
+    await fetchAll()
     setLoading(false)
   }
 
-  const channelEpisodes = selectedChannel ? episodes.filter(ep => ep.channel_id === selectedChannel) : []
+  const handleDelete = async (id: number, title: string) => {
+    if (!confirm(`「${title}」を削除しますか？`)) return
+    await supabase.from('episodes').delete().eq('id', id)
+    await fetchAll()
+  }
 
   return (
     <div style={{ minHeight:'100vh', backgroundColor:'#f8fafc', fontFamily:'sans-serif' }}>
@@ -63,91 +73,80 @@ export default function WatchPage() {
         <a href="/" style={{ color:'#93c5fd', fontSize:'13px', textDecoration:'none' }}>← トップに戻る</a>
       </header>
 
-      <main style={{ display:'flex', height:'calc(100vh - 64px)' }}>
-        {/* サイドバー */}
-        <div style={{ width:'240px', backgroundColor:'#fff', borderRight:'1px solid #e2e8f0', padding:'24px 16px', overflowY:'auto' }}>
-          <h2 style={{ fontSize:'12px', color:'#94a3b8', letterSpacing:'0.1em', marginBottom:'12px' }}>チャンネル</h2>
-          {channels.map(ch => (
-            <div key={ch.id} onClick={() => { setSelectedChannel(ch.id); setSelectedEpisode(null) }}
-              style={{ padding:'10px 14px', borderRadius:'8px', marginBottom:'6px', cursor:'pointer', backgroundColor: selectedChannel === ch.id ? '#1e3a5f' : 'transparent', color: selectedChannel === ch.id ? '#fff' : '#1e3a5f', fontWeight: selectedChannel === ch.id ? 'bold' : 'normal', fontSize:'14px' }}>
-              {ch.title}
+      <main style={{ padding:'40px', maxWidth:'900px', margin:'0 auto' }}>
+        <h1 style={{ fontSize:'22px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'32px' }}>🎬 動画管理</h1>
+
+        {/* 追加フォーム */}
+        <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'32px', marginBottom:'32px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
+          <h2 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>新しい動画を追加</h2>
+
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', marginBottom:'16px' }}>
+            <div>
+              <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>チャンネル</label>
+              <select value={channelId} onChange={(e) => setChannelId(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc' }}>
+                <option value="">選択してください</option>
+                {channels.map((ch) => <option key={ch.id} value={ch.id}>{ch.title}</option>)}
+              </select>
             </div>
-          ))}
+            <div>
+              <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>順番</label>
+              <input placeholder="例: 1, 2, 3" value={orderNo} onChange={(e) => setOrderNo(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }} />
+            </div>
+          </div>
+
+          <div style={{ marginBottom:'16px' }}>
+            <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>動画タイトル</label>
+            <input placeholder="動画タイトルを入力" value={title} onChange={(e) => setTitle(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }} />
+          </div>
+
+          <div style={{ marginBottom:'8px' }}>
+            <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>動画URL（YouTube または Googleドライブ）</label>
+            <input
+              placeholder="https://drive.google.com/file/d/xxxxx/view または https://www.youtube.com/embed/xxxxx"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }}
+            />
+          </div>
+          <p style={{ fontSize:'12px', color:'#94a3b8', marginBottom:'20px' }}>
+            ※ GoogleドライブはファイルのURLをそのまま貼り付けてください。自動で埋め込みURLに変換されます。
+          </p>
+
+          <button onClick={handleCreate} disabled={loading} style={{ padding:'10px 28px', backgroundColor:'#1e3a5f', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'15px', fontWeight:'bold' }}>
+            {loading ? '追加中...' : '追加する'}
+          </button>
         </div>
 
-        {/* メインエリア */}
-        <div style={{ flex:1, padding:'32px', overflowY:'auto' }}>
-          {!selectedChannel && (
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%' }}>
-              <p style={{ color:'#94a3b8', fontSize:'16px' }}>← 左のチャンネルを選んでください</p>
+        {/* 動画一覧 */}
+        <h2 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'16px' }}>動画一覧</h2>
+        {channels.map((ch) => (
+          <div key={ch.id} style={{ marginBottom:'24px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'10px' }}>
+              <div style={{ width:'4px', height:'20px', backgroundColor:'#2563eb', borderRadius:'2px' }}></div>
+              <h3 style={{ fontSize:'15px', fontWeight:'bold', color:'#1e3a5f' }}>{ch.title}</h3>
             </div>
-          )}
-
-          {selectedChannel && !selectedEpisode && (
-            <div>
-              <h2 style={{ fontSize:'18px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>動画一覧</h2>
-              {channelEpisodes.length === 0 && <p style={{ color:'#94a3b8' }}>動画がありません</p>}
-              {channelEpisodes.map((ep, index) => {
-                const isLocked = index > 0 && !watchLogs.find(w => w.episode_id === channelEpisodes[index-1].id)
-                const isWatched = watchLogs.find(w => w.episode_id === ep.id)
-                return (
-                  <div key={ep.id} onClick={() => !isLocked && handleSelectEpisode(ep)}
-                    style={{ backgroundColor:'#fff', border:`1px solid ${isWatched ? '#86efac' : '#e2e8f0'}`, borderRadius:'10px', padding:'16px 20px', marginBottom:'10px', cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.5 : 1, display:'flex', alignItems:'center', gap:'16px', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
-                    <span style={{ fontSize:'12px', color:'#fff', backgroundColor: isWatched ? '#16a34a' : '#2563eb', padding:'2px 8px', borderRadius:'4px', fontWeight:'bold' }}>#{ep.order_no}</span>
-                    <span style={{ fontSize:'15px', color:'#1e3a5f', fontWeight:'500', flex:1 }}>{ep.title}</span>
-                    {isLocked && <span style={{ fontSize:'12px', color:'#94a3b8' }}>🔒 前の動画を完了してください</span>}
-                    {isWatched && <span style={{ fontSize:'13px', color:'#16a34a', fontWeight:'bold' }}>✅ 完了</span>}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {selectedEpisode && (
-            <div>
-              <button onClick={() => setSelectedEpisode(null)} style={{ marginBottom:'20px', color:'#2563eb', background:'none', border:'none', cursor:'pointer', fontSize:'14px' }}>← 動画一覧に戻る</button>
-              <h2 style={{ fontSize:'20px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>{selectedEpisode.title}</h2>
-
-              {selectedEpisode.video_url && (
-                <iframe
-                  width="100%"
-                  height="400"
-                  src={selectedEpisode.video_url}
-                  frameBorder="0"
-                  allowFullScreen
-                  allow="autoplay"
-                  style={{ borderRadius:'12px', marginBottom:'24px', boxShadow:'0 4px 12px rgba(0,0,0,0.1)' }}
-                />
-              )}
-
-              {!watched ? (
-                <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'28px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
-                  <h3 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>視聴完了を記録する</h3>
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', marginBottom:'20px' }}>
-                    <div>
-                      <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>お名前</label>
-                      <input placeholder="山田 太郎" value={userName} onChange={(e) => setUserName(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>会社</label>
-                      <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc' }}>
-                        <option value="">選択してください</option>
-                        {companies.map(co => <option key={co.id} value={co.id}>{co.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <button onClick={handleComplete} disabled={loading} style={{ width:'100%', padding:'13px', backgroundColor:'#16a34a', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'16px', fontWeight:'bold' }}>{loading ? '記録中...' : '✅ 視聴完了'}</button>
-                </div>
-              ) : (
-                <div style={{ backgroundColor:'#f0fdf4', border:'1px solid #86efac', borderRadius:'12px', padding:'32px', textAlign:'center' }}>
-                  <p style={{ fontSize:'20px', color:'#16a34a', fontWeight:'bold', marginBottom:'16px' }}>✅ 視聴完了を記録しました！</p>
-                  <button onClick={() => setSelectedEpisode(null)} style={{ padding:'10px 28px', backgroundColor:'#1e3a5f', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'15px' }}>次の動画へ</button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+            {episodes.filter((ep) => ep.channel_id === ch.id).length === 0 && (
+              <p style={{ color:'#94a3b8', fontSize:'14px', paddingLeft:'12px' }}>動画がありません</p>
+            )}
+            {episodes.filter((ep) => ep.channel_id === ch.id).map((ep) => (
+              <div key={ep.id} style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'8px', padding:'16px 20px', marginBottom:'8px', display:'flex', alignItems:'center', gap:'16px', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
+                <span style={{ fontSize:'12px', color:'#fff', backgroundColor:'#2563eb', padding:'2px 8px', borderRadius:'4px', fontWeight:'bold' }}>#{ep.order_no}</span>
+                <span style={{ fontSize:'15px', color:'#1e3a5f', fontWeight:'500', flex:1 }}>{ep.title}</span>
+                {ep.video_url && (
+                  <span style={{ fontSize:'12px', color:'#94a3b8', padding:'2px 8px', backgroundColor:'#f1f5f9', borderRadius:'4px' }}>
+                    {getVideoType(ep.video_url)}
+                  </span>
+                )}
+                <button onClick={() => handleDelete(ep.id, ep.title)} style={{ padding:'6px 14px', backgroundColor:'#ef4444', color:'#fff', border:'none', borderRadius:'6px', cursor:'pointer', fontSize:'13px' }}>削除</button>
+              </div>
+            ))}
+          </div>
+        ))}
       </main>
+
+      <footer style={{ borderTop:'1px solid #e2e8f0', padding:'20px 40px', textAlign:'center', marginTop:'40px' }}>
+        <p style={{ color:'#94a3b8', fontSize:'12px' }}>© 2026 MIRAI Group. ViewConfirm.</p>
+      </footer>
     </div>
   )
 }
