@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-type Channel = { id: number; title: string }
+type Channel = { id: number; title: string; thumbnail_url: string }
 type Episode = { id: number; title: string; video_url: string; channel_id: number; order_no: number }
 
 export default function WatchPage() {
@@ -37,8 +37,6 @@ export default function WatchPage() {
   const handleComplete = async () => {
     if (!userNames[0] || !companyId || !selectedEpisode) return
     setLoading(true)
-
-    // 入力された名前だけ（空欄除く）をwatch_logsに登録
     const filledNames = userNames.filter(name => name.trim() !== '')
     for (const name of filledNames) {
       await supabase.from('watch_logs').insert({
@@ -48,7 +46,6 @@ export default function WatchPage() {
         watched_at: new Date().toISOString()
       })
     }
-
     setWatched(true)
     setWatchLogs([...watchLogs, { episode_id: selectedEpisode.id }])
     setLoading(false)
@@ -77,12 +74,19 @@ export default function WatchPage() {
 
       <main style={{ display:'flex', height:'calc(100vh - 64px)' }}>
         {/* サイドバー */}
-        <div style={{ width:'240px', backgroundColor:'#fff', borderRight:'1px solid #e2e8f0', padding:'24px 16px', overflowY:'auto' }}>
+        <div style={{ width:'240px', backgroundColor:'#fff', borderRight:'1px solid #e2e8f0', padding:'16px', overflowY:'auto' }}>
           <h2 style={{ fontSize:'12px', color:'#94a3b8', letterSpacing:'0.1em', marginBottom:'12px' }}>チャンネル</h2>
           {channels.map(ch => (
             <div key={ch.id} onClick={() => { setSelectedChannel(ch.id); setSelectedEpisode(null) }}
-              style={{ padding:'10px 14px', borderRadius:'8px', marginBottom:'6px', cursor:'pointer', backgroundColor: selectedChannel === ch.id ? '#1e3a5f' : 'transparent', color: selectedChannel === ch.id ? '#fff' : '#1e3a5f', fontWeight: selectedChannel === ch.id ? 'bold' : 'normal', fontSize:'14px' }}>
-              {ch.title}
+              style={{ borderRadius:'8px', marginBottom:'8px', cursor:'pointer', overflow:'hidden', border: selectedChannel === ch.id ? '2px solid #2563eb' : '1px solid #e2e8f0' }}>
+              {ch.thumbnail_url ? (
+                <img src={ch.thumbnail_url} alt={ch.title} style={{ width:'100%', height:'80px', objectFit:'cover', display:'block' }} />
+              ) : (
+                <div style={{ width:'100%', height:'80px', backgroundColor:'#1e3a5f', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'28px' }}>📁</div>
+              )}
+              <div style={{ padding:'8px 10px', backgroundColor: selectedChannel === ch.id ? '#1e3a5f' : '#fff', color: selectedChannel === ch.id ? '#fff' : '#1e3a5f', fontWeight: selectedChannel === ch.id ? 'bold' : 'normal', fontSize:'13px' }}>
+                {ch.title}
+              </div>
             </div>
           ))}
         </div>
@@ -137,7 +141,6 @@ export default function WatchPage() {
                   <h3 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'8px' }}>視聴完了を記録する</h3>
                   <p style={{ fontSize:'13px', color:'#64748b', marginBottom:'20px' }}>※ 同時視聴の場合は全員分のお名前を入力してください（最大5名）</p>
 
-                  {/* 会社選択 */}
                   <div style={{ marginBottom:'20px' }}>
                     <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>会社（全員共通）</label>
                     <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc' }}>
@@ -146,7 +149,6 @@ export default function WatchPage() {
                     </select>
                   </div>
 
-                  {/* 氏名入力（5名分） */}
                   <div style={{ marginBottom:'20px' }}>
                     {userNames.map((name, index) => (
                       <div key={index} style={{ marginBottom:'10px' }}>
