@@ -23,9 +23,7 @@ export default function EpisodesPage() {
 
   useEffect(() => { fetchAll() }, [])
 
-  // GoogleドライブURLを埋め込み用URLに変換
   const convertToEmbedUrl = (url: string) => {
-    // Googleドライブの共有URL形式: https://drive.google.com/file/d/FILE_ID/view
     const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/)
     if (driveMatch) {
       return `https://drive.google.com/file/d/${driveMatch[1]}/preview`
@@ -56,6 +54,12 @@ export default function EpisodesPage() {
     setLoading(false)
   }
 
+  const handleDelete = async (id: number, title: string) => {
+    if (!confirm(`「${title}」を削除しますか？`)) return
+    await supabase.from('episodes').delete().eq('id', id)
+    await fetchAll()
+  }
+
   return (
     <div style={{ minHeight:'100vh', backgroundColor:'#f8fafc', fontFamily:'sans-serif' }}>
       <header style={{ backgroundColor:'#1e3a5f', padding:'0 40px', height:'64px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -72,7 +76,6 @@ export default function EpisodesPage() {
       <main style={{ padding:'40px', maxWidth:'900px', margin:'0 auto' }}>
         <h1 style={{ fontSize:'22px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'32px' }}>🎬 動画管理</h1>
 
-        {/* 追加フォーム */}
         <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'32px', marginBottom:'32px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
           <h2 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>新しい動画を追加</h2>
 
@@ -97,23 +100,15 @@ export default function EpisodesPage() {
 
           <div style={{ marginBottom:'8px' }}>
             <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>動画URL（YouTube または Googleドライブ）</label>
-            <input
-              placeholder="https://drive.google.com/file/d/xxxxx/view または https://www.youtube.com/embed/xxxxx"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }}
-            />
+            <input placeholder="https://drive.google.com/file/d/xxxxx/view または https://www.youtube.com/embed/xxxxx" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }} />
           </div>
-          <p style={{ fontSize:'12px', color:'#94a3b8', marginBottom:'20px' }}>
-            ※ GoogleドライブはファイルのURLをそのまま貼り付けてください。自動で埋め込みURLに変換されます。
-          </p>
+          <p style={{ fontSize:'12px', color:'#94a3b8', marginBottom:'20px' }}>※ GoogleドライブはファイルのURLをそのまま貼り付けてください。自動で埋め込みURLに変換されます。</p>
 
           <button onClick={handleCreate} disabled={loading} style={{ padding:'10px 28px', backgroundColor:'#1e3a5f', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'15px', fontWeight:'bold' }}>
             {loading ? '追加中...' : '追加する'}
           </button>
         </div>
 
-        {/* 動画一覧 */}
         <h2 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'16px' }}>動画一覧</h2>
         {channels.map((ch) => (
           <div key={ch.id} style={{ marginBottom:'24px' }}>
@@ -127,12 +122,13 @@ export default function EpisodesPage() {
             {episodes.filter((ep) => ep.channel_id === ch.id).map((ep) => (
               <div key={ep.id} style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'8px', padding:'16px 20px', marginBottom:'8px', display:'flex', alignItems:'center', gap:'16px', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
                 <span style={{ fontSize:'12px', color:'#fff', backgroundColor:'#2563eb', padding:'2px 8px', borderRadius:'4px', fontWeight:'bold' }}>#{ep.order_no}</span>
-                <span style={{ fontSize:'15px', color:'#1e3a5f', fontWeight:'500' }}>{ep.title}</span>
+                <span style={{ fontSize:'15px', color:'#1e3a5f', fontWeight:'500', flex:1 }}>{ep.title}</span>
                 {ep.video_url && (
-                  <span style={{ fontSize:'12px', color:'#94a3b8', marginLeft:'auto', padding:'2px 8px', backgroundColor:'#f1f5f9', borderRadius:'4px' }}>
+                  <span style={{ fontSize:'12px', color:'#94a3b8', padding:'2px 8px', backgroundColor:'#f1f5f9', borderRadius:'4px' }}>
                     {getVideoType(ep.video_url)}
                   </span>
                 )}
+                <button onClick={() => handleDelete(ep.id, ep.title)} style={{ padding:'6px 14px', backgroundColor:'#ef4444', color:'#fff', border:'none', borderRadius:'6px', cursor:'pointer', fontSize:'13px' }}>削除</button>
               </div>
             ))}
           </div>
