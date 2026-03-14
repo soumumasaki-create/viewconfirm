@@ -27,7 +27,6 @@ export default function WatchPage() {
   const [watchLogs, setWatchLogs] = useState<{episode_id:number, user_name:string}[]>([])
   const [isEmployee, setIsEmployee] = useState(false)
   const [loginName, setLoginName] = useState('')
-  const [timeLeft, setTimeLeft] = useState(0)
   const [canComplete, setCanComplete] = useState(false)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -73,23 +72,17 @@ export default function WatchPage() {
     setSelectedEpisode(ep)
     setWatched(false)
 
-    // タイマーをクリア
     if (timerRef.current) clearInterval(timerRef.current)
 
-    // 視聴済みなら即ボタン表示
     if (isEpisodeWatched(ep.id)) {
       setCanComplete(true)
-      setTimeLeft(0)
       return
     }
 
-    // 初回は3分カウントダウン
     setCanComplete(false)
-    setTimeLeft(WAIT_SECONDS)
     let remaining = WAIT_SECONDS
     timerRef.current = setInterval(() => {
       remaining -= 1
-      setTimeLeft(remaining)
       if (remaining <= 0) {
         clearInterval(timerRef.current!)
         setCanComplete(true)
@@ -136,12 +129,6 @@ export default function WatchPage() {
     const newNames = [...subNames]
     newNames[index][field] = value
     setSubNames(newNames)
-  }
-
-  const formatTime = (sec: number) => {
-    const m = Math.floor(sec / 60)
-    const s = sec % 60
-    return `${m}:${String(s).padStart(2, '0')}`
   }
 
   const channelEpisodes = selectedChannel ? episodes.filter(ep => ep.channel_id === selectedChannel.id) : []
@@ -260,22 +247,10 @@ export default function WatchPage() {
               />
             )}
 
-            {!watched ? (
+            {!watched && canComplete && (
               <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'24px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'8px' }}>視聴完了を記録する</h3>
-
-                {/* タイマー表示 */}
-                {!canComplete && (
-                  <div style={{ backgroundColor:'#fef9c3', border:'1px solid #fde047', borderRadius:'10px', padding:'16px', marginBottom:'20px', textAlign:'center' }}>
-                    <p style={{ fontSize:'13px', color:'#854d0e', marginBottom:'4px' }}>⏱ 視聴完了ボタンが表示されるまで</p>
-                    <p style={{ fontSize:'32px', fontWeight:'bold', color:'#b45309', margin:0 }}>{formatTime(timeLeft)}</p>
-                    <p style={{ fontSize:'12px', color:'#854d0e', marginTop:'4px' }}>動画をしっかり視聴してください</p>
-                  </div>
-                )}
-
-                {canComplete && (
-                  <p style={{ fontSize:'13px', color:'#64748b', marginBottom:'20px' }}>※ 同時視聴の場合は②以降にお名前を入力してください</p>
-                )}
+                <p style={{ fontSize:'13px', color:'#64748b', marginBottom:'20px' }}>※ 同時視聴の場合は②以降にお名前を入力してください</p>
 
                 <div style={{ marginBottom:'16px' }}>
                   <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>会社（全員共通）</label>
@@ -307,12 +282,14 @@ export default function WatchPage() {
                   </div>
                 ))}
 
-                <button onClick={handleComplete} disabled={!canComplete || loading}
-                  style={{ width:'100%', padding:'13px', backgroundColor: canComplete ? '#16a34a' : '#94a3b8', color:'#fff', border:'none', borderRadius:'8px', cursor: canComplete ? 'pointer' : 'not-allowed', fontSize:'16px', fontWeight:'bold', marginTop:'8px' }}>
-                  {loading ? '記録中...' : canComplete ? '✅ 視聴完了' : '⏱ しばらくお待ちください...'}
+                <button onClick={handleComplete} disabled={loading}
+                  style={{ width:'100%', padding:'13px', backgroundColor:'#16a34a', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'16px', fontWeight:'bold', marginTop:'8px' }}>
+                  {loading ? '記録中...' : '✅ 視聴完了'}
                 </button>
               </div>
-            ) : (
+            )}
+
+            {watched && (
               <div style={{ backgroundColor:'#f0fdf4', border:'1px solid #86efac', borderRadius:'12px', padding:'32px', textAlign:'center' }}>
                 <p style={{ fontSize:'20px', color:'#16a34a', fontWeight:'bold', marginBottom:'16px' }}>✅ 視聴完了を記録しました！</p>
                 <button onClick={() => setSelectedEpisode(null)}
