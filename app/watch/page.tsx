@@ -184,11 +184,16 @@ export default function WatchPage() {
               const isWatched = isEpisodeWatched(ep.id)
               return (
                 <div key={ep.id} onClick={() => !isLocked && handleSelectEpisode(ep)}
-                  style={{ backgroundColor:'#fff', border:`1px solid ${isWatched ? '#86efac' : '#e2e8f0'}`, borderRadius:'10px', padding:'14px 16px', marginBottom:'8px', cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.5 : 1, display:'flex', alignItems:'center', gap:'12px', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
+                  style={{ backgroundColor: isWatched ? '#f0fdf4' : '#fff', border:`1px solid ${isWatched ? '#86efac' : '#e2e8f0'}`, borderRadius:'10px', padding:'14px 16px', marginBottom:'8px', cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.5 : 1, display:'flex', alignItems:'center', gap:'12px', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
                   <div style={{ width:'36px', height:'36px', borderRadius:'50%', backgroundColor: isWatched ? '#16a34a' : '#2563eb', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                     <span style={{ color:'#fff', fontSize:'14px' }}>{isWatched ? '✅' : '▶'}</span>
                   </div>
                   <span style={{ fontSize:'15px', color:'#1e3a5f', fontWeight:'500', flex:1 }}>第{ep.order_no}回　{ep.title}</span>
+                  {isWatched && (
+                    <span style={{ fontSize:'12px', color:'#16a34a', fontWeight:'bold', backgroundColor:'#dcfce7', padding:'3px 10px', borderRadius:'20px', whiteSpace:'nowrap' }}>
+                      ✅ 視聴済み
+                    </span>
+                  )}
                   {isLocked && <span style={{ fontSize:'11px', color:'#94a3b8' }}>🔒</span>}
                 </div>
               )
