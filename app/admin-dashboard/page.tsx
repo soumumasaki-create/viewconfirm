@@ -4,9 +4,9 @@ import { supabase } from '../../lib/supabase'
 
 type Company = { id: number; name: string }
 type Employee = { id: number; last_name: string; first_name: string; company: string }
-type Episode = { id: number; title: string; channel_id: number }
+type Episode = { id: number; title: string; channel_id: number; order_no: number }
 type Channel = { id: number; title: string }
-type WatchLog = { user_name: string; episode_id: number; company_id: number }
+type WatchLog = { user_name: string; episode_id: number; company_id: number; watched_at: string }
 
 export default function AdminDashboardPage() {
   const [companies, setCompanies] = useState<Company[]>([])
@@ -15,7 +15,7 @@ export default function AdminDashboardPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [watchLogs, setWatchLogs] = useState<WatchLog[]>([])
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null)
-  const [selectedEpisodeId, setSelectedEpisodeId] = useState<number | null>(null)
+  const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -25,7 +25,7 @@ export default function AdminDashboardPage() {
       if (ch) setChannels(ch)
       const { data: ep } = await supabase.from('episodes').select('*').order('channel_id, order_no' as any)
       if (ep) setEpisodes(ep)
-      const { data: em } = await supabase.from('employees').select('*').order('id')
+      const { data: em } = await supabase.from('employees').select('*').order('company, id')
       if (em) setEmployees(em)
       const { data: wl } = await supabase.from('watch_logs').select('*')
       if (wl) setWatchLogs(wl)
@@ -34,25 +34,42 @@ export default function AdminDashboardPage() {
   }, [])
 
   const selectedCompany = companies.find(c => c.id === selectedCompanyId)
-  const selectedEpisode = episodes.find(e => e.id === selectedEpisodeId)
+  const selectedChannel = channels.find(c => c.id === selectedChannelId)
+  const channelEpisodes = episodes.filter(ep => ep.channel_id === selectedChannelId)
+  const companyEmployees = employees.filter(e => !selectedCompanyId || e.company === selectedCompany?.name)
 
-  // 選択会社の社員一覧
-  const companyEmployees = employees.filter(e => e.company === selectedCompany?.name)
+  const getWatchLog = (userName: string, episodeId: number) => {
+    return watchLogs.find(w => w.user_name === userName && w.episode_id === episodeId)
+  }
 
-  // 視聴済み氏名リスト（選択エピソード×選択会社）
-  const watchedNames = watchLogs
-    .filter(w => w.episode_id === selectedEpisodeId && w.company_id === selectedCompanyId)
-    .map(w => w.user_name)
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr)
+    return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+  }
 
-  // 視聴済み・未視聴に分類
-  const watchedEmployees = companyEmployees.filter(e =>
-    watchedNames.includes(e.last_name + ' ' + e.first_name) ||
-    watchedNames.includes(e.last_name + e.first_name)
-  )
-  const unwatchedEmployees = companyEmployees.filter(e =>
-    !watchedNames.includes(e.last_name + ' ' + e.first_name) &&
-    !watchedNames.includes(e.last_name + e.first_name)
-  )
+  const handleCSV = () => {
+    if (!selectedChannelId) return
+    const rows = [['氏名', '会社', ...channelEpisodes.map(ep => ep.title + '（視聴日時）')]]
+    companyEmployees.forEach(emp => {
+      const fullName = emp.last_name + ' ' + emp.first_name
+      const row = [fullName, emp.company]
+      channelEpisodes.forEach(ep => {
+        const log = getWatchLog(fullName, ep.id)
+        row.push(log ? formatDate(log.watched_at) : '未視聴')
+      })
+      rows.push(row)
+    })
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `視聴状況_${selectedChannel?.title || ''}_${selectedCompany?.name || '全社'}.csv`
+    a.click()
+  }
+
+  const watchedCount = (episodeId: number) =>
+    companyEmployees.filter(emp => getWatchLog(emp.last_name + ' ' + emp.first_name, episodeId)).length
 
   return (
     <div style={{ minHeight:'100vh', backgroundColor:'#f8fafc', fontFamily:'sans-serif' }}>
@@ -67,86 +84,98 @@ export default function AdminDashboardPage() {
         <a href="/" style={{ color:'#93c5fd', fontSize:'13px', textDecoration:'none' }}>← トップに戻る</a>
       </header>
 
-      <main style={{ padding:'40px', maxWidth:'900px', margin:'0 auto' }}>
+      <main style={{ padding:'40px', maxWidth:'1200px', margin:'0 auto' }}>
         <h1 style={{ fontSize:'22px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'32px' }}>📊 視聴状況ダッシュボード</h1>
 
         {/* 絞り込み */}
         <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'28px', marginBottom:'32px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px' }}>
           <div>
-            <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block', fontWeight:'600' }}>① 会社を選択</label>
-            <select value={selectedCompanyId ?? ''} onChange={(e) => { setSelectedCompanyId(Number(e.target.value)); setSelectedEpisodeId(null) }}
+            <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block', fontWeight:'600' }}>① 会社を選択（任意）</label>
+            <select value={selectedCompanyId ?? ''} onChange={(e) => setSelectedCompanyId(e.target.value ? Number(e.target.value) : null)}
               style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc' }}>
-              <option value="">会社を選んでください</option>
+              <option value="">全社員</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block', fontWeight:'600' }}>② 動画を選択</label>
-            <select value={selectedEpisodeId ?? ''} onChange={(e) => setSelectedEpisodeId(Number(e.target.value))}
+            <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block', fontWeight:'600' }}>② チャンネルを選択</label>
+            <select value={selectedChannelId ?? ''} onChange={(e) => setSelectedChannelId(e.target.value ? Number(e.target.value) : null)}
               style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc' }}>
-              <option value="">動画を選んでください</option>
-              {channels.map(ch => (
-                <optgroup key={ch.id} label={ch.title}>
-                  {episodes.filter(ep => ep.channel_id === ch.id).map(ep => (
-                    <option key={ep.id} value={ep.id}>{ep.title}</option>
-                  ))}
-                </optgroup>
-              ))}
+              <option value="">チャンネルを選んでください</option>
+              {channels.map(ch => <option key={ch.id} value={ch.id}>{ch.title}</option>)}
             </select>
           </div>
         </div>
 
-        {/* 結果 */}
-        {selectedCompanyId && selectedEpisodeId && (
-          <div>
-            <div style={{ marginBottom:'12px', padding:'16px 20px', backgroundColor:'#1e3a5f', borderRadius:'10px', color:'#fff', fontSize:'14px' }}>
-              <strong>{selectedCompany?.name}</strong>　×　<strong>「{selectedEpisode?.title}」</strong>　の視聴状況
-              <span style={{ marginLeft:'16px', fontSize:'13px', color:'#93c5fd' }}>
-                {watchedEmployees.length}名視聴済 / {companyEmployees.length}名中
-              </span>
+        {selectedChannelId && companyEmployees.length > 0 && (
+          <>
+            {/* ヘッダー情報 */}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'16px' }}>
+              <div style={{ padding:'12px 20px', backgroundColor:'#1e3a5f', borderRadius:'10px', color:'#fff', fontSize:'14px' }}>
+                <strong>{selectedCompany?.name || '全社員'}</strong>　×　<strong>「{selectedChannel?.title}」</strong>
+                <span style={{ marginLeft:'16px', fontSize:'13px', color:'#93c5fd' }}>対象社員 {companyEmployees.length}名</span>
+              </div>
+              <button onClick={handleCSV}
+                style={{ padding:'10px 20px', backgroundColor:'#16a34a', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'14px', fontWeight:'bold' }}>
+                📥 CSVダウンロード
+              </button>
             </div>
 
-            {companyEmployees.length === 0 && (
-              <p style={{ color:'#94a3b8', textAlign:'center', padding:'40px' }}>この会社の社員が登録されていません</p>
-            )}
+            {/* テーブル */}
+            <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', overflow:'auto', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
+              <table style={{ width:'100%', borderCollapse:'collapse', minWidth:'600px' }}>
+                <thead>
+                  <tr style={{ backgroundColor:'#1e3a5f' }}>
+                    <th style={{ padding:'14px 20px', textAlign:'left', color:'#fff', fontSize:'13px', whiteSpace:'nowrap' }}>氏名</th>
+                    <th style={{ padding:'14px 20px', textAlign:'left', color:'#fff', fontSize:'13px', whiteSpace:'nowrap' }}>会社</th>
+                    {channelEpisodes.map(ep => (
+                      <th key={ep.id} style={{ padding:'14px 16px', textAlign:'center', color:'#fff', fontSize:'12px', whiteSpace:'nowrap' }}>
+                        #{ep.order_no} {ep.title}
+                        <div style={{ fontSize:'11px', color:'#93c5fd', marginTop:'2px' }}>
+                          {watchedCount(ep.id)}/{companyEmployees.length}名視聴済
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {companyEmployees.map((emp, i) => {
+                    const fullName = emp.last_name + ' ' + emp.first_name
+                    return (
+                      <tr key={emp.id} style={{ backgroundColor: i % 2 === 0 ? '#fff' : '#f8fafc', borderTop:'1px solid #e2e8f0' }}>
+                        <td style={{ padding:'12px 20px', color:'#1e3a5f', fontSize:'14px', fontWeight:'500', whiteSpace:'nowrap' }}>{fullName}</td>
+                        <td style={{ padding:'12px 20px', color:'#64748b', fontSize:'13px', whiteSpace:'nowrap' }}>{emp.company}</td>
+                        {channelEpisodes.map(ep => {
+                          const log = getWatchLog(fullName, ep.id)
+                          return (
+                            <td key={ep.id} style={{ padding:'12px 16px', textAlign:'center' }}>
+                              {log ? (
+                                <div>
+                                  <div style={{ color:'#16a34a', fontWeight:'bold', fontSize:'14px' }}>✅</div>
+                                  <div style={{ color:'#64748b', fontSize:'11px', marginTop:'2px', whiteSpace:'nowrap' }}>{formatDate(log.watched_at)}</div>
+                                </div>
+                              ) : (
+                                <span style={{ color:'#ef4444', fontSize:'14px' }}>❌</span>
+                              )}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
 
-            {companyEmployees.length > 0 && (
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px' }}>
-                {/* 視聴済み */}
-                <div style={{ backgroundColor:'#fff', border:'1px solid #86efac', borderRadius:'12px', overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
-                  <div style={{ backgroundColor:'#16a34a', padding:'12px 20px' }}>
-                    <h2 style={{ color:'#fff', fontSize:'15px', fontWeight:'bold', margin:0 }}>✅ 視聴済み　{watchedEmployees.length}名</h2>
-                  </div>
-                  {watchedEmployees.length === 0 ? (
-                    <p style={{ color:'#94a3b8', padding:'20px', textAlign:'center', fontSize:'14px' }}>まだいません</p>
-                  ) : (
-                    watchedEmployees.map((emp, i) => (
-                      <div key={emp.id} style={{ padding:'12px 20px', borderTop: i > 0 ? '1px solid #e2e8f0' : 'none', fontSize:'14px', color:'#1e3a5f', fontWeight:'500' }}>
-                        {emp.last_name} {emp.first_name}
-                        <span style={{ marginLeft:'8px', fontSize:'12px', color:'#64748b' }}>{emp.company}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
+        {selectedChannelId && companyEmployees.length === 0 && (
+          <p style={{ color:'#94a3b8', textAlign:'center', padding:'40px' }}>社員が登録されていません</p>
+        )}
 
-                {/* 未視聴 */}
-                <div style={{ backgroundColor:'#fff', border:'1px solid #fca5a5', borderRadius:'12px', overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
-                  <div style={{ backgroundColor:'#ef4444', padding:'12px 20px' }}>
-                    <h2 style={{ color:'#fff', fontSize:'15px', fontWeight:'bold', margin:0 }}>❌ 未視聴　{unwatchedEmployees.length}名</h2>
-                  </div>
-                  {unwatchedEmployees.length === 0 ? (
-                    <p style={{ color:'#94a3b8', padding:'20px', textAlign:'center', fontSize:'14px' }}>全員視聴済みです！</p>
-                  ) : (
-                    unwatchedEmployees.map((emp, i) => (
-                      <div key={emp.id} style={{ padding:'12px 20px', borderTop: i > 0 ? '1px solid #e2e8f0' : 'none', fontSize:'14px', color:'#1e3a5f', fontWeight:'500' }}>
-                        {emp.last_name} {emp.first_name}
-                        <span style={{ marginLeft:'8px', fontSize:'12px', color:'#64748b' }}>{emp.company}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
+        {!selectedChannelId && (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'60px' }}>
+            <p style={{ color:'#94a3b8', fontSize:'16px' }}>チャンネルを選択してください</p>
           </div>
         )}
       </main>
