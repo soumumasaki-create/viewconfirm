@@ -2,14 +2,14 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-type Channel = { id: number; title: string; thumbnail_url: string }
+type Channel = { id: number; title: string; description: string; thumbnail_url: string }
 type Episode = { id: number; title: string; video_url: string; channel_id: number; order_no: number }
 type NamePair = { last: string; first: string }
 
 export default function WatchPage() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [episodes, setEpisodes] = useState<Episode[]>([])
-  const [selectedChannel, setSelectedChannel] = useState<number | null>(null)
+  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null)
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null)
   const [myName, setMyName] = useState('')
   const [subNames, setSubNames] = useState<NamePair[]>([
@@ -70,14 +70,12 @@ export default function WatchPage() {
   const handleComplete = async () => {
     if (!myName || !companyId || !selectedEpisode) return
     setLoading(true)
-
     const allNames = [
       myName,
       ...subNames
         .filter(n => n.last.trim() !== '' || n.first.trim() !== '')
         .map(n => (n.last + ' ' + n.first).trim())
     ]
-
     const newLogs: {episode_id:number, user_name:string}[] = []
     for (const name of allNames) {
       await supabase.from('watch_logs').insert({
@@ -99,8 +97,6 @@ export default function WatchPage() {
     setSubNames(newNames)
   }
 
-  const channelEpisodes = selectedChannel ? episodes.filter(ep => ep.channel_id === selectedChannel) : []
-
   const isEpisodeWatched = (episodeId: number) => {
     if (isEmployee && loginName) {
       return watchLogs.some(w => w.episode_id === episodeId && w.user_name === loginName)
@@ -108,9 +104,11 @@ export default function WatchPage() {
     return watchLogs.some(w => w.episode_id === episodeId)
   }
 
+  const channelEpisodes = selectedChannel ? episodes.filter(ep => ep.channel_id === selectedChannel.id) : []
+
   return (
     <div style={{ minHeight:'100vh', backgroundColor:'#f8fafc', fontFamily:'sans-serif' }}>
-      <header style={{ backgroundColor:'#1e3a5f', padding:'0 40px', height:'64px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+      <header style={{ backgroundColor:'#1e3a5f', padding:'0 20px', height:'64px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
           <div style={{ width:'36px', height:'36px', backgroundColor:'#2563eb', borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>📺</div>
           <div>
@@ -118,7 +116,7 @@ export default function WatchPage() {
             <div style={{ fontSize:'10px', color:'#93c5fd', letterSpacing:'0.1em' }}>MIRAI GROUP</div>
           </div>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:'16px' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
           {isEmployee && loginName && (
             <span style={{ color:'#bfdbfe', fontSize:'13px' }}>{loginName}</span>
           )}
@@ -130,130 +128,146 @@ export default function WatchPage() {
         </div>
       </header>
 
-      <main style={{ display:'flex', height:'calc(100vh - 64px)' }}>
-        <div style={{ width:'240px', backgroundColor:'#fff', borderRight:'1px solid #e2e8f0', padding:'16px', overflowY:'auto' }}>
-          <h2 style={{ fontSize:'12px', color:'#94a3b8', letterSpacing:'0.1em', marginBottom:'12px' }}>チャンネル</h2>
-          {channels.map(ch => (
-            <div key={ch.id} onClick={() => { setSelectedChannel(ch.id); setSelectedEpisode(null) }}
-              style={{ borderRadius:'8px', marginBottom:'8px', cursor:'pointer', overflow:'hidden', border: selectedChannel === ch.id ? '2px solid #2563eb' : '1px solid #e2e8f0' }}>
-              {ch.thumbnail_url ? (
-                <img src={ch.thumbnail_url} alt={ch.title} style={{ width:'100%', objectFit:'contain', backgroundColor:'#f1f5f9', display:'block' }} />
+      <main style={{ padding:'20px', maxWidth:'900px', margin:'0 auto' }}>
+
+        {/* チャンネル一覧 */}
+        {!selectedChannel && !selectedEpisode && (
+          <div>
+            <h2 style={{ fontSize:'18px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>📺 チャンネルを選んでください</h2>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))', gap:'16px' }}>
+              {channels.map(ch => (
+                <div key={ch.id} onClick={() => setSelectedChannel(ch)}
+                  style={{ backgroundColor:'#fff', borderRadius:'12px', overflow:'hidden', border:'1px solid #e2e8f0', cursor:'pointer', boxShadow:'0 1px 3px rgba(0,0,0,0.05)', transition:'transform 0.1s' }}
+                  onMouseOver={e => (e.currentTarget.style.transform='scale(1.02)')}
+                  onMouseOut={e => (e.currentTarget.style.transform='scale(1)')}>
+                  {ch.thumbnail_url ? (
+                    <img src={ch.thumbnail_url} alt={ch.title} style={{ width:'100%', aspectRatio:'16/9', objectFit:'contain', backgroundColor:'#f1f5f9', display:'block' }} />
+                  ) : (
+                    <div style={{ width:'100%', aspectRatio:'16/9', backgroundColor:'#1e3a5f', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'32px' }}>📁</div>
+                  )}
+                  <div style={{ padding:'10px 12px' }}>
+                    <div style={{ fontSize:'13px', fontWeight:'bold', color:'#1e3a5f', lineHeight:'1.4' }}>{ch.title}</div>
+                    {ch.description && <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>{ch.description}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 動画一覧 */}
+        {selectedChannel && !selectedEpisode && (
+          <div>
+            <button onClick={() => setSelectedChannel(null)}
+              style={{ marginBottom:'16px', padding:'8px 16px', backgroundColor:'#f1f5f9', color:'#1e3a5f', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'14px', fontWeight:'bold' }}>
+              ← チャンネル一覧に戻る
+            </button>
+
+            {/* チャンネル情報 */}
+            <div style={{ backgroundColor:'#fff', borderRadius:'12px', overflow:'hidden', border:'1px solid #e2e8f0', marginBottom:'24px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
+              {selectedChannel.thumbnail_url ? (
+                <img src={selectedChannel.thumbnail_url} alt={selectedChannel.title} style={{ width:'100%', maxHeight:'200px', objectFit:'contain', backgroundColor:'#f1f5f9', display:'block' }} />
               ) : (
-                <div style={{ width:'100%', height:'80px', backgroundColor:'#1e3a5f', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'28px' }}>📁</div>
+                <div style={{ width:'100%', height:'140px', backgroundColor:'#1e3a5f', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'48px' }}>📁</div>
               )}
-              <div style={{ padding:'8px 10px', backgroundColor: selectedChannel === ch.id ? '#1e3a5f' : '#fff', color: selectedChannel === ch.id ? '#fff' : '#1e3a5f', fontWeight: selectedChannel === ch.id ? 'bold' : 'normal', fontSize:'13px' }}>
-                {ch.title}
+              <div style={{ padding:'16px 20px' }}>
+                <h2 style={{ fontSize:'18px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'4px' }}>{selectedChannel.title}</h2>
+                {selectedChannel.description && <p style={{ fontSize:'13px', color:'#64748b' }}>{selectedChannel.description}</p>}
               </div>
             </div>
-          ))}
-        </div>
 
-        <div style={{ flex:1, padding:'32px', overflowY:'auto' }}>
-          {!selectedChannel && (
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%' }}>
-              <p style={{ color:'#94a3b8', fontSize:'16px' }}>← 左のチャンネルを選んでください</p>
-            </div>
-          )}
-
-          {selectedChannel && !selectedEpisode && (
-            <div>
-              <h2 style={{ fontSize:'18px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>動画一覧</h2>
-              {channelEpisodes.length === 0 && <p style={{ color:'#94a3b8' }}>動画がありません</p>}
-              {channelEpisodes.map((ep, index) => {
-                const isLocked = index > 0 && !isEpisodeWatched(channelEpisodes[index-1].id)
-                const isWatched = isEpisodeWatched(ep.id)
-                return (
-                  <div key={ep.id} onClick={() => !isLocked && handleSelectEpisode(ep)}
-                    style={{ backgroundColor:'#fff', border:`1px solid ${isWatched ? '#86efac' : '#e2e8f0'}`, borderRadius:'10px', padding:'16px 20px', marginBottom:'10px', cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.5 : 1, display:'flex', alignItems:'center', gap:'16px', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
-                    <span style={{ fontSize:'12px', color:'#fff', backgroundColor: isWatched ? '#16a34a' : '#2563eb', padding:'2px 8px', borderRadius:'4px', fontWeight:'bold' }}>#{ep.order_no}</span>
-                    <span style={{ fontSize:'15px', color:'#1e3a5f', fontWeight:'500', flex:1 }}>{ep.title}</span>
-                    {isLocked && <span style={{ fontSize:'12px', color:'#94a3b8' }}>🔒 前の動画を完了してください</span>}
-                    {isWatched && <span style={{ fontSize:'13px', color:'#16a34a', fontWeight:'bold' }}>✅ 完了</span>}
+            {/* 動画一覧 */}
+            <h3 style={{ fontSize:'15px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'12px' }}>番組一覧</h3>
+            {channelEpisodes.length === 0 && <p style={{ color:'#94a3b8' }}>動画がありません</p>}
+            {channelEpisodes.map((ep, index) => {
+              const isLocked = index > 0 && !isEpisodeWatched(channelEpisodes[index-1].id)
+              const isWatched = isEpisodeWatched(ep.id)
+              return (
+                <div key={ep.id} onClick={() => !isLocked && handleSelectEpisode(ep)}
+                  style={{ backgroundColor:'#fff', border:`1px solid ${isWatched ? '#86efac' : '#e2e8f0'}`, borderRadius:'10px', padding:'14px 16px', marginBottom:'8px', cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.5 : 1, display:'flex', alignItems:'center', gap:'12px', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
+                  <div style={{ width:'36px', height:'36px', borderRadius:'50%', backgroundColor: isWatched ? '#16a34a' : '#2563eb', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <span style={{ color:'#fff', fontSize:'14px' }}>{isWatched ? '✅' : '▶'}</span>
                   </div>
-                )
-              })}
-            </div>
-          )}
+                  <span style={{ fontSize:'15px', color:'#1e3a5f', fontWeight:'500', flex:1 }}>第{ep.order_no}回　{ep.title}</span>
+                  {isLocked && <span style={{ fontSize:'11px', color:'#94a3b8' }}>🔒</span>}
+                </div>
+              )
+            })}
+          </div>
+        )}
 
-          {selectedEpisode && (
-            <div>
-              <button onClick={() => setSelectedEpisode(null)} style={{ marginBottom:'20px', color:'#2563eb', background:'none', border:'none', cursor:'pointer', fontSize:'14px' }}>← 動画一覧に戻る</button>
-              <h2 style={{ fontSize:'20px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'20px' }}>{selectedEpisode.title}</h2>
+        {/* 動画再生 */}
+        {selectedEpisode && (
+          <div>
+            <button onClick={() => setSelectedEpisode(null)}
+              style={{ marginBottom:'16px', padding:'8px 16px', backgroundColor:'#f1f5f9', color:'#1e3a5f', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'14px', fontWeight:'bold' }}>
+              ← 番組一覧に戻る
+            </button>
+            <h2 style={{ fontSize:'18px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'16px' }}>第{selectedEpisode.order_no}回　{selectedEpisode.title}</h2>
 
-              {selectedEpisode.video_url && (
-                <iframe
-                  width="100%"
-                  height="400"
-                  src={selectedEpisode.video_url}
-                  frameBorder="0"
-                  allowFullScreen
-                  allow="autoplay"
-                  style={{ borderRadius:'12px', marginBottom:'24px', boxShadow:'0 4px 12px rgba(0,0,0,0.1)' }}
-                />
-              )}
+            {selectedEpisode.video_url && (
+              <iframe
+                width="100%"
+                height="360"
+                src={selectedEpisode.video_url}
+                frameBorder="0"
+                allowFullScreen
+                allow="autoplay"
+                style={{ borderRadius:'12px', marginBottom:'24px', boxShadow:'0 4px 12px rgba(0,0,0,0.1)', display:'block' }}
+              />
+            )}
 
-              {!watched ? (
-                <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'28px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
-                  <h3 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'8px' }}>視聴完了を記録する</h3>
-                  <p style={{ fontSize:'13px', color:'#64748b', marginBottom:'20px' }}>※ 同時視聴の場合は②以降にお名前を入力してください（最大5名）</p>
+            {!watched ? (
+              <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'24px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)' }}>
+                <h3 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'8px' }}>視聴完了を記録する</h3>
+                <p style={{ fontSize:'13px', color:'#64748b', marginBottom:'20px' }}>※ 同時視聴の場合は②以降にお名前を入力してください</p>
 
-                  <div style={{ marginBottom:'20px' }}>
-                    <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>会社（全員共通）</label>
-                    <select value={companyId} onChange={(e) => setCompanyId(e.target.value)}
-                      disabled={isEmployee}
-                      style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor: isEmployee ? '#f1f5f9' : '#f8fafc' }}>
-                      <option value="">選択してください</option>
-                      {companies.map(co => <option key={co.id} value={co.id}>{co.name}</option>)}
-                    </select>
-                  </div>
+                <div style={{ marginBottom:'16px' }}>
+                  <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>会社（全員共通）</label>
+                  <select value={companyId} onChange={(e) => setCompanyId(e.target.value)}
+                    disabled={isEmployee}
+                    style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor: isEmployee ? '#f1f5f9' : '#f8fafc' }}>
+                    <option value="">選択してください</option>
+                    {companies.map(co => <option key={co.id} value={co.id}>{co.name}</option>)}
+                  </select>
+                </div>
 
-                  {/* 自分の氏名 */}
-                  <div style={{ marginBottom:'16px' }}>
-                    <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block', fontWeight:'600' }}>氏名①（自分）</label>
-                    <input
-                      value={myName}
-                      readOnly={isEmployee}
-                      onChange={(e) => setMyName(e.target.value)}
-                      style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor: isEmployee ? '#f1f5f9' : '#f8fafc', boxSizing:'border-box' }}
-                    />
-                  </div>
+                <div style={{ marginBottom:'16px' }}>
+                  <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block', fontWeight:'600' }}>氏名①（自分）</label>
+                  <input value={myName} readOnly={isEmployee} onChange={(e) => setMyName(e.target.value)}
+                    style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor: isEmployee ? '#f1f5f9' : '#f8fafc', boxSizing:'border-box' }} />
+                </div>
 
-                  {/* 同時視聴者 */}
-                  {subNames.map((name, index) => (
-                    <div key={index} style={{ marginBottom:'12px' }}>
-                      <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>
-                        氏名{['②','③','④','⑤'][index]}（任意）
-                      </label>
-                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-                        <input
-                          placeholder="姓"
-                          value={name.last}
-                          onChange={(e) => handleSubNameChange(index, 'last', e.target.value)}
-                          style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'15px', color:'#0f172a', backgroundColor:'#fafafa', boxSizing:'border-box' }}
-                        />
-                        <input
-                          placeholder="名"
-                          value={name.first}
-                          onChange={(e) => handleSubNameChange(index, 'first', e.target.value)}
-                          style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'15px', color:'#0f172a', backgroundColor:'#fafafa', boxSizing:'border-box' }}
-                        />
-                      </div>
+                {subNames.map((name, index) => (
+                  <div key={index} style={{ marginBottom:'12px' }}>
+                    <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>
+                      氏名{['②','③','④','⑤'][index]}（任意）
+                    </label>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                      <input placeholder="姓" value={name.last} onChange={(e) => handleSubNameChange(index, 'last', e.target.value)}
+                        style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'15px', color:'#0f172a', backgroundColor:'#fafafa', boxSizing:'border-box' }} />
+                      <input placeholder="名" value={name.first} onChange={(e) => handleSubNameChange(index, 'first', e.target.value)}
+                        style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'15px', color:'#0f172a', backgroundColor:'#fafafa', boxSizing:'border-box' }} />
                     </div>
-                  ))}
+                  </div>
+                ))}
 
-                  <button onClick={handleComplete} disabled={loading} style={{ width:'100%', padding:'13px', backgroundColor:'#16a34a', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'16px', fontWeight:'bold', marginTop:'8px' }}>
-                    {loading ? '記録中...' : '✅ 視聴完了'}
-                  </button>
-                </div>
-              ) : (
-                <div style={{ backgroundColor:'#f0fdf4', border:'1px solid #86efac', borderRadius:'12px', padding:'32px', textAlign:'center' }}>
-                  <p style={{ fontSize:'20px', color:'#16a34a', fontWeight:'bold', marginBottom:'16px' }}>✅ 視聴完了を記録しました！</p>
-                  <button onClick={() => setSelectedEpisode(null)} style={{ padding:'10px 28px', backgroundColor:'#1e3a5f', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'15px' }}>次の動画へ</button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                <button onClick={handleComplete} disabled={loading}
+                  style={{ width:'100%', padding:'13px', backgroundColor:'#16a34a', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'16px', fontWeight:'bold', marginTop:'8px' }}>
+                  {loading ? '記録中...' : '✅ 視聴完了'}
+                </button>
+              </div>
+            ) : (
+              <div style={{ backgroundColor:'#f0fdf4', border:'1px solid #86efac', borderRadius:'12px', padding:'32px', textAlign:'center' }}>
+                <p style={{ fontSize:'20px', color:'#16a34a', fontWeight:'bold', marginBottom:'16px' }}>✅ 視聴完了を記録しました！</p>
+                <button onClick={() => setSelectedEpisode(null)}
+                  style={{ padding:'10px 28px', backgroundColor:'#1e3a5f', color:'#fff', border:'none', borderRadius:'8px', cursor:'pointer', fontSize:'15px' }}>
+                  次の動画へ
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </main>
     </div>
   )
