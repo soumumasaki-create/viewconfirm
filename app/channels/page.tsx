@@ -9,9 +9,11 @@ type Channel = {
   published: boolean
   thumbnail_url: string
   target_scope: string
+  target_companies: string[]
   target_affiliations: string[]
 }
 
+const ALL_COMPANIES = ['高見起業', 'タイホー荷役', '翠星', '山大運輸', 'みらい']
 const ALL_AFFILIATIONS = ['ドライバー', 'リフトオペレーター', '事務職', '管理職']
 
 export default function ChannelsPage() {
@@ -21,6 +23,7 @@ export default function ChannelsPage() {
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [thumbnailPreview, setThumbnailPreview] = useState('')
   const [targetScope, setTargetScope] = useState('all')
+  const [targetCompanies, setTargetCompanies] = useState<string[]>([])
   const [targetAffiliations, setTargetAffiliations] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -30,12 +33,13 @@ export default function ChannelsPage() {
   const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null)
   const [editThumbnailPreview, setEditThumbnailPreview] = useState('')
   const [editTargetScope, setEditTargetScope] = useState('all')
+  const [editTargetCompanies, setEditTargetCompanies] = useState<string[]>([])
   const [editTargetAffiliations, setEditTargetAffiliations] = useState<string[]>([])
   const [editLoading, setEditLoading] = useState(false)
 
   const fetchChannels = async () => {
     const { data } = await supabase.from('channels').select('*').order('id')
-    if (data) setChannels(data)
+    if (data) setChannels(data as Channel[])
   }
 
   useEffect(() => {
@@ -44,12 +48,14 @@ export default function ChannelsPage() {
 
   useEffect(() => {
     if (targetScope === 'all') {
+      setTargetCompanies([])
       setTargetAffiliations([])
     }
   }, [targetScope])
 
   useEffect(() => {
     if (editTargetScope === 'all') {
+      setEditTargetCompanies([])
       setEditTargetAffiliations([])
     }
   }, [editTargetScope])
@@ -70,8 +76,20 @@ export default function ChannelsPage() {
     }
   }
 
+  const toggleCreateCompany = (value: string) => {
+    setTargetCompanies((prev) =>
+      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
+    )
+  }
+
   const toggleCreateAffiliation = (value: string) => {
     setTargetAffiliations((prev) =>
+      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
+    )
+  }
+
+  const toggleEditCompany = (value: string) => {
+    setEditTargetCompanies((prev) =>
       prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
     )
   }
@@ -84,6 +102,7 @@ export default function ChannelsPage() {
 
   const handleCreate = async () => {
     if (!title) return
+    if (targetScope === 'selected' && targetCompanies.length === 0) return
     if (targetScope === 'selected' && targetAffiliations.length === 0) return
 
     setLoading(true)
@@ -105,6 +124,7 @@ export default function ChannelsPage() {
       published: false,
       thumbnail_url: thumbnailUrl,
       target_scope: targetScope,
+      target_companies: targetScope === 'all' ? [] : targetCompanies,
       target_affiliations: targetScope === 'all' ? [] : targetAffiliations,
     })
 
@@ -113,6 +133,7 @@ export default function ChannelsPage() {
     setThumbnailFile(null)
     setThumbnailPreview('')
     setTargetScope('all')
+    setTargetCompanies([])
     setTargetAffiliations([])
     await fetchChannels()
     setLoading(false)
@@ -125,11 +146,13 @@ export default function ChannelsPage() {
     setEditThumbnailFile(null)
     setEditThumbnailPreview(ch.thumbnail_url || '')
     setEditTargetScope(ch.target_scope || 'all')
+    setEditTargetCompanies(ch.target_companies || [])
     setEditTargetAffiliations(ch.target_affiliations || [])
   }
 
   const handleEditSave = async () => {
     if (!editChannel || !editTitle) return
+    if (editTargetScope === 'selected' && editTargetCompanies.length === 0) return
     if (editTargetScope === 'selected' && editTargetAffiliations.length === 0) return
 
     setEditLoading(true)
@@ -150,6 +173,7 @@ export default function ChannelsPage() {
       description: editDescription,
       thumbnail_url: thumbnailUrl,
       target_scope: editTargetScope,
+      target_companies: editTargetScope === 'all' ? [] : editTargetCompanies,
       target_affiliations: editTargetScope === 'all' ? [] : editTargetAffiliations,
     }).eq('id', editChannel.id)
 
@@ -166,8 +190,15 @@ export default function ChannelsPage() {
 
   const getTargetLabel = (ch: Channel) => {
     if (ch.target_scope === 'all') return '全社員対象'
-    if (!ch.target_affiliations || ch.target_affiliations.length === 0) return '未設定'
-    return ch.target_affiliations.join(' / ')
+
+    const companies = ch.target_companies || []
+    const affiliations = ch.target_affiliations || []
+
+    if (companies.length === 0 && affiliations.length === 0) return '未設定'
+    if (companies.length > 0 && affiliations.length === 0) return `会社: ${companies.join(' / ')}`
+    if (companies.length === 0 && affiliations.length > 0) return `所属: ${affiliations.join(' / ')}`
+
+    return `会社: ${companies.join(' / ')} / 所属: ${affiliations.join(' / ')}`
   }
 
   return (
@@ -217,26 +248,44 @@ export default function ChannelsPage() {
               style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }}
             >
               <option value="all">全社員対象</option>
-              <option value="selected">所属を選択する</option>
+              <option value="selected">会社と所属を選択する</option>
             </select>
           </div>
 
           {targetScope === 'selected' && (
-            <div style={{ marginBottom:'16px' }}>
-              <label style={{ fontSize:'13px', color:'#475569', marginBottom:'10px', display:'block' }}>対象所属</label>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:'10px' }}>
-                {ALL_AFFILIATIONS.map((affiliation) => (
-                  <label key={affiliation} style={{ display:'flex', alignItems:'center', gap:'8px', fontSize:'14px', color:'#334155', backgroundColor:'#f8fafc', border:'1px solid #cbd5e1', borderRadius:'8px', padding:'10px 12px' }}>
-                    <input
-                      type="checkbox"
-                      checked={targetAffiliations.includes(affiliation)}
-                      onChange={() => toggleCreateAffiliation(affiliation)}
-                    />
-                    {affiliation}
-                  </label>
-                ))}
+            <>
+              <div style={{ marginBottom:'16px' }}>
+                <label style={{ fontSize:'13px', color:'#475569', marginBottom:'10px', display:'block' }}>対象会社</label>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:'10px' }}>
+                  {ALL_COMPANIES.map((company) => (
+                    <label key={company} style={{ display:'flex', alignItems:'center', gap:'8px', fontSize:'14px', color:'#334155', backgroundColor:'#f8fafc', border:'1px solid #cbd5e1', borderRadius:'8px', padding:'10px 12px' }}>
+                      <input
+                        type="checkbox"
+                        checked={targetCompanies.includes(company)}
+                        onChange={() => toggleCreateCompany(company)}
+                      />
+                      {company}
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+
+              <div style={{ marginBottom:'16px' }}>
+                <label style={{ fontSize:'13px', color:'#475569', marginBottom:'10px', display:'block' }}>対象所属</label>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:'10px' }}>
+                  {ALL_AFFILIATIONS.map((affiliation) => (
+                    <label key={affiliation} style={{ display:'flex', alignItems:'center', gap:'8px', fontSize:'14px', color:'#334155', backgroundColor:'#f8fafc', border:'1px solid #cbd5e1', borderRadius:'8px', padding:'10px 12px' }}>
+                      <input
+                        type="checkbox"
+                        checked={targetAffiliations.includes(affiliation)}
+                        onChange={() => toggleCreateAffiliation(affiliation)}
+                      />
+                      {affiliation}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </>
           )}
 
           <div style={{ marginBottom:'20px' }}>
@@ -310,26 +359,44 @@ export default function ChannelsPage() {
                 style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }}
               >
                 <option value="all">全社員対象</option>
-                <option value="selected">所属を選択する</option>
+                <option value="selected">会社と所属を選択する</option>
               </select>
             </div>
 
             {editTargetScope === 'selected' && (
-              <div style={{ marginBottom:'16px' }}>
-                <label style={{ fontSize:'13px', color:'#475569', marginBottom:'10px', display:'block' }}>対象所属</label>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:'10px' }}>
-                  {ALL_AFFILIATIONS.map((affiliation) => (
-                    <label key={affiliation} style={{ display:'flex', alignItems:'center', gap:'8px', fontSize:'14px', color:'#334155', backgroundColor:'#f8fafc', border:'1px solid #cbd5e1', borderRadius:'8px', padding:'10px 12px' }}>
-                      <input
-                        type="checkbox"
-                        checked={editTargetAffiliations.includes(affiliation)}
-                        onChange={() => toggleEditAffiliation(affiliation)}
-                      />
-                      {affiliation}
-                    </label>
-                  ))}
+              <>
+                <div style={{ marginBottom:'16px' }}>
+                  <label style={{ fontSize:'13px', color:'#475569', marginBottom:'10px', display:'block' }}>対象会社</label>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:'10px' }}>
+                    {ALL_COMPANIES.map((company) => (
+                      <label key={company} style={{ display:'flex', alignItems:'center', gap:'8px', fontSize:'14px', color:'#334155', backgroundColor:'#f8fafc', border:'1px solid #cbd5e1', borderRadius:'8px', padding:'10px 12px' }}>
+                        <input
+                          type="checkbox"
+                          checked={editTargetCompanies.includes(company)}
+                          onChange={() => toggleEditCompany(company)}
+                        />
+                        {company}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+
+                <div style={{ marginBottom:'16px' }}>
+                  <label style={{ fontSize:'13px', color:'#475569', marginBottom:'10px', display:'block' }}>対象所属</label>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:'10px' }}>
+                    {ALL_AFFILIATIONS.map((affiliation) => (
+                      <label key={affiliation} style={{ display:'flex', alignItems:'center', gap:'8px', fontSize:'14px', color:'#334155', backgroundColor:'#f8fafc', border:'1px solid #cbd5e1', borderRadius:'8px', padding:'10px 12px' }}>
+                        <input
+                          type="checkbox"
+                          checked={editTargetAffiliations.includes(affiliation)}
+                          onChange={() => toggleEditAffiliation(affiliation)}
+                        />
+                        {affiliation}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </>
             )}
 
             <div style={{ marginBottom:'24px' }}>
