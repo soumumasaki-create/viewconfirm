@@ -7,14 +7,21 @@ const supabaseAdmin = createClient(
 )
 
 export async function POST(req: Request) {
-  const { lastName, firstName, company } = await req.json()
+  const { lastName, firstName, company, affiliation } = await req.json()
+
+  if (!lastName || !firstName || !company || !affiliation) {
+    return NextResponse.json(
+      { error: '姓・名・会社名・所属をすべて入力してください' },
+      { status: 400 }
+    )
+  }
 
   // 氏名ベースの内部メールアドレス生成
   const lastRoman = encodeURIComponent(lastName).replace(/%/g, '').toLowerCase()
   const firstRoman = encodeURIComponent(firstName).replace(/%/g, '').toLowerCase()
   const email = `${lastRoman}_${firstRoman}@viewconfirm.internal`
 
-  // 既に同じメールアドレスが存在するか確認
+  // 既に同じ氏名が存在するか確認
   const { data: existing } = await supabaseAdmin
     .from('employees')
     .select('id')
@@ -23,7 +30,10 @@ export async function POST(req: Request) {
     .single()
 
   if (existing) {
-    return NextResponse.json({ error: '同じ氏名の社員が既に登録されています' }, { status: 400 })
+    return NextResponse.json(
+      { error: '同じ氏名の社員が既に登録されています' },
+      { status: 400 }
+    )
   }
 
   // Supabase Authにユーザー作成（初回パスワード1234）
@@ -37,10 +47,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: authError.message }, { status: 400 })
   }
 
-  // employeesテーブルに登録（emailも保存）
+  // employeesテーブルに登録
   const { error: dbError } = await supabaseAdmin
     .from('employees')
-    .insert({ last_name: lastName, first_name: firstName, company, email })
+    .insert({
+      last_name: lastName,
+      first_name: firstName,
+      company,
+      affiliation,
+      email,
+    })
 
   if (dbError) {
     return NextResponse.json({ error: dbError.message }, { status: 400 })

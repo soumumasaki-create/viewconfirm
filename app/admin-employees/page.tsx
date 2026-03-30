@@ -2,13 +2,29 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-type Employee = { id: number; last_name: string; first_name: string; company: string; created_at: string }
+type Employee = {
+  id: number
+  last_name: string
+  first_name: string
+  company: string
+  affiliation: string
+  created_at: string
+}
+
+const AFFILIATIONS_BY_COMPANY: Record<string, string[]> = {
+  '高見起業': ['ドライバー', 'リフトオペレーター', '事務職', '管理職'],
+  'タイホー荷役': ['リフトオペレーター', '事務職', '管理職'],
+  '翠星': ['ドライバー', '事務職', '管理職'],
+  '山大運輸': ['ドライバー', '事務職', '管理職'],
+  'みらい': ['事務職', '管理職'],
+}
 
 export default function AdminEmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [lastName, setLastName] = useState('')
   const [firstName, setFirstName] = useState('')
   const [company, setCompany] = useState('')
+  const [affiliation, setAffiliation] = useState('')
   const [companies, setCompanies] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -17,6 +33,10 @@ export default function AdminEmployeesPage() {
     fetchEmployees()
     fetchCompanies()
   }, [])
+
+  useEffect(() => {
+    setAffiliation('')
+  }, [company])
 
   const fetchEmployees = async () => {
     const { data } = await supabase.from('employees').select('*').order('id')
@@ -28,9 +48,11 @@ export default function AdminEmployeesPage() {
     if (data) setCompanies(data.map((d) => d.name))
   }
 
+  const availableAffiliations = company ? (AFFILIATIONS_BY_COMPANY[company] || []) : []
+
   const handleAdd = async () => {
-    if (!lastName || !firstName || !company) {
-      setMessage('❌ 姓・名・会社名をすべて入力してください')
+    if (!lastName || !firstName || !company || !affiliation) {
+      setMessage('❌ 姓・名・会社名・所属をすべて入力してください')
       return
     }
     setLoading(true)
@@ -39,7 +61,7 @@ export default function AdminEmployeesPage() {
     const res = await fetch('/api/create-employee', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lastName, firstName, company }),
+      body: JSON.stringify({ lastName, firstName, company, affiliation }),
     })
     const result = await res.json()
 
@@ -50,6 +72,7 @@ export default function AdminEmployeesPage() {
       setLastName('')
       setFirstName('')
       setCompany('')
+      setAffiliation('')
       await fetchEmployees()
     }
     setLoading(false)
@@ -84,20 +107,49 @@ export default function AdminEmployeesPage() {
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', marginBottom:'16px' }}>
             <div>
               <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>姓</label>
-              <input placeholder="例：山田" value={lastName} onChange={(e) => setLastName(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }} />
+              <input
+                placeholder="例：山田"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }}
+              />
             </div>
             <div>
               <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>名</label>
-              <input placeholder="例：太郎" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }} />
+              <input
+                placeholder="例：太郎"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }}
+              />
             </div>
           </div>
 
           <div style={{ marginBottom:'16px' }}>
             <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>会社名</label>
-            <select value={company} onChange={(e) => setCompany(e.target.value)} style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }}>
+            <select
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }}
+            >
               <option value="">会社を選択してください</option>
               {companies.map((c) => (
                 <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ marginBottom:'16px' }}>
+            <label style={{ fontSize:'13px', color:'#475569', marginBottom:'6px', display:'block' }}>所属</label>
+            <select
+              value={affiliation}
+              onChange={(e) => setAffiliation(e.target.value)}
+              disabled={!company}
+              style={{ width:'100%', padding:'10px 14px', borderRadius:'8px', border:'1px solid #cbd5e1', fontSize:'15px', color:'#0f172a', backgroundColor:'#f8fafc', boxSizing:'border-box' }}
+            >
+              <option value="">{company ? '所属を選択してください' : '先に会社名を選択してください'}</option>
+              {availableAffiliations.map((a) => (
+                <option key={a} value={a}>{a}</option>
               ))}
             </select>
           </div>
@@ -115,17 +167,19 @@ export default function AdminEmployeesPage() {
               <tr style={{ backgroundColor:'#1e3a5f' }}>
                 <th style={{ padding:'14px 20px', textAlign:'left', color:'#fff', fontSize:'13px' }}>氏名</th>
                 <th style={{ padding:'14px 20px', textAlign:'left', color:'#fff', fontSize:'13px' }}>会社名</th>
+                <th style={{ padding:'14px 20px', textAlign:'left', color:'#fff', fontSize:'13px' }}>所属</th>
                 <th style={{ padding:'14px 20px', textAlign:'center', color:'#fff', fontSize:'13px' }}>操作</th>
               </tr>
             </thead>
             <tbody>
               {employees.length === 0 && (
-                <tr><td colSpan={3} style={{ padding:'24px', textAlign:'center', color:'#94a3b8' }}>社員が登録されていません</td></tr>
+                <tr><td colSpan={4} style={{ padding:'24px', textAlign:'center', color:'#94a3b8' }}>社員が登録されていません</td></tr>
               )}
               {employees.map((emp, i) => (
                 <tr key={emp.id} style={{ backgroundColor: i % 2 === 0 ? '#fff' : '#f8fafc', borderTop:'1px solid #e2e8f0' }}>
                   <td style={{ padding:'14px 20px', color:'#1e3a5f', fontSize:'14px', fontWeight:'500' }}>{emp.last_name} {emp.first_name}</td>
                   <td style={{ padding:'14px 20px', color:'#64748b', fontSize:'14px' }}>{emp.company}</td>
+                  <td style={{ padding:'14px 20px', color:'#64748b', fontSize:'14px' }}>{emp.affiliation || '-'}</td>
                   <td style={{ padding:'14px 20px', textAlign:'center' }}>
                     <button onClick={() => handleDelete(emp.id, emp.last_name + ' ' + emp.first_name)} style={{ padding:'6px 14px', backgroundColor:'#ef4444', color:'#fff', border:'none', borderRadius:'6px', cursor:'pointer', fontSize:'13px' }}>削除</button>
                   </td>
