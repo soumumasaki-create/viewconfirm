@@ -402,13 +402,15 @@ export default function WatchPage() {
         style={{
           backgroundColor: '#1e3a5f',
           padding: '0 20px',
-          height: '64px',
+          minHeight: '64px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          gap: '12px',
+          flexWrap: 'wrap',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0' }}>
           <div
             style={{
               width: '36px',
@@ -433,9 +435,41 @@ export default function WatchPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '10px 0',
+            flexWrap: 'wrap',
+            justifyContent: 'flex-end',
+          }}
+        >
           {isEmployee && loginName && (
-            <span style={{ color: '#bfdbfe', fontSize: '13px' }}>{loginName}</span>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end',
+                gap: '2px',
+              }}
+            >
+              <span style={{ color: '#bfdbfe', fontSize: '13px', fontWeight: 'bold' }}>
+                {loginName}
+              </span>
+
+              {employeeCompany && (
+                <span style={{ color: '#e2e8f0', fontSize: '12px' }}>
+                  会社：{employeeCompany}
+                </span>
+              )}
+
+              {employeeAffiliation && (
+                <span style={{ color: '#e2e8f0', fontSize: '12px' }}>
+                  所属：{employeeAffiliation}
+                </span>
+              )}
+            </div>
           )}
 
           {isEmployee ? (
