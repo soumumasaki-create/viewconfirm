@@ -78,7 +78,7 @@ export default function EmployeeLoginPage() {
     <div
       style={{
         minHeight: '100vh',
-        backgroundColor: '#f8fafc',
+        background: 'linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%)',
         fontFamily: 'sans-serif',
         display: 'flex',
         flexDirection: 'column',
@@ -123,31 +123,32 @@ export default function EmployeeLoginPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '40px',
+          padding: '40px 20px',
         }}
       >
         <div
           style={{
             backgroundColor: '#fff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '16px',
-            padding: '48px',
+            border: '1px solid #dbeafe',
+            borderRadius: '20px',
+            padding: '40px',
             width: '100%',
-            maxWidth: '460px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            maxWidth: '480px',
+            boxShadow: '0 10px 30px rgba(30, 58, 95, 0.08)',
           }}
         >
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
             <div
               style={{
-                width: '64px',
-                height: '64px',
-                backgroundColor: '#2563eb',
-                borderRadius: '16px',
+                width: '72px',
+                height: '72px',
+                backgroundColor: '#dbeafe',
+                color: '#1d4ed8',
+                borderRadius: '20px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '32px',
+                fontSize: '34px',
                 margin: '0 auto 16px',
               }}
             >
@@ -155,15 +156,15 @@ export default function EmployeeLoginPage() {
             </div>
             <h1
               style={{
-                fontSize: '22px',
+                fontSize: '24px',
                 fontWeight: 'bold',
                 color: '#1e3a5f',
-                marginBottom: '6px',
+                margin: '0 0 8px 0',
               }}
             >
               社員ログイン
             </h1>
-            <p style={{ fontSize: '13px', color: '#64748b' }}>
+            <p style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.7', margin: 0 }}>
               氏名とパスワードを入力してください
             </p>
           </div>
@@ -172,12 +173,12 @@ export default function EmployeeLoginPage() {
             style={{
               backgroundColor: '#eff6ff',
               border: '1px solid #bfdbfe',
-              borderRadius: '10px',
+              borderRadius: '12px',
               padding: '14px 16px',
-              marginBottom: '20px',
+              marginBottom: '24px',
             }}
           >
-            <p style={{ margin: 0, fontSize: '13px', color: '#1d4ed8', lineHeight: '1.6' }}>
+            <p style={{ margin: 0, fontSize: '13px', color: '#1d4ed8', lineHeight: '1.7' }}>
               登録済みの氏名を入力すると、該当する場合は会社名と所属を確認できます。
             </p>
           </div>
@@ -187,7 +188,7 @@ export default function EmployeeLoginPage() {
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               gap: '12px',
-              marginBottom: '16px',
+              marginBottom: '18px',
             }}
           >
             <div>
@@ -213,7 +214,7 @@ export default function EmployeeLoginPage() {
                 style={{
                   width: '100%',
                   padding: '12px 14px',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   border: '1px solid #cbd5e1',
                   fontSize: '15px',
                   color: '#0f172a',
@@ -246,7 +247,7 @@ export default function EmployeeLoginPage() {
                 style={{
                   width: '100%',
                   padding: '12px 14px',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   border: '1px solid #cbd5e1',
                   fontSize: '15px',
                   color: '#0f172a',
@@ -261,24 +262,51 @@ export default function EmployeeLoginPage() {
             style={{
               backgroundColor: employeeInfo ? '#f0fdf4' : '#f8fafc',
               border: employeeInfo ? '1px solid #86efac' : '1px solid #e2e8f0',
-              borderRadius: '10px',
-              padding: '14px 16px',
+              borderRadius: '12px',
+              padding: '16px',
               marginBottom: '20px',
             }}
           >
-            <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>登録情報</div>
+            <div
+              style={{
+                fontSize: '12px',
+                color: employeeInfo ? '#166534' : '#64748b',
+                marginBottom: '8px',
+                fontWeight: '700',
+              }}
+            >
+              登録情報
+            </div>
 
             {employeeInfo ? (
-              <div>
-                <div style={{ fontSize: '13px', color: '#166534', marginBottom: '4px' }}>
+              <div style={{ display: 'grid', gap: '8px' }}>
+                <div
+                  style={{
+                    fontSize: '13px',
+                    color: '#166534',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                  }}
+                >
                   会社：{employeeInfo.company || '-'}
                 </div>
-                <div style={{ fontSize: '13px', color: '#166534' }}>
+                <div
+                  style={{
+                    fontSize: '13px',
+                    color: '#166534',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                  }}
+                >
                   所属：{employeeInfo.affiliation || '-'}
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: '13px', color: '#94a3b8' }}>
+              <div style={{ fontSize: '13px', color: '#94a3b8', lineHeight: '1.7' }}>
                 氏名を入力すると、登録されている会社名・所属がここに表示されます
               </div>
             )}
@@ -305,7 +333,7 @@ export default function EmployeeLoginPage() {
               style={{
                 width: '100%',
                 padding: '12px 14px',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 border: '1px solid #cbd5e1',
                 fontSize: '15px',
                 color: '#0f172a',
@@ -320,12 +348,14 @@ export default function EmployeeLoginPage() {
               style={{
                 backgroundColor: '#fef2f2',
                 border: '1px solid #fca5a5',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 padding: '12px 16px',
                 marginBottom: '16px',
               }}
             >
-              <p style={{ color: '#ef4444', fontSize: '13px', margin: 0 }}>❌ {error}</p>
+              <p style={{ color: '#ef4444', fontSize: '13px', margin: 0, lineHeight: '1.6' }}>
+                ❌ {error}
+              </p>
             </div>
           )}
 
@@ -338,16 +368,21 @@ export default function EmployeeLoginPage() {
               backgroundColor: '#2563eb',
               color: '#fff',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '10px',
               cursor: 'pointer',
               fontSize: '16px',
               fontWeight: 'bold',
+              boxShadow: '0 6px 16px rgba(37, 99, 235, 0.22)',
             }}
           >
             {loading ? 'ログイン中...' : 'ログイン'}
           </button>
 
-          <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <div style={{ textAlign: 'center', marginTop: '14px' }}>
+            <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 10px 0' }}>
+              入力後、右の登録情報を確認してからログインしてください
+            </p>
+
             <a href="/login" style={{ fontSize: '13px', color: '#64748b', textDecoration: 'none' }}>
               管理者の方はこちら →
             </a>
