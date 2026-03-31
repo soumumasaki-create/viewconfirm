@@ -14,7 +14,13 @@ type Episode = {
   video_url: string
   channel_id: number
   order_no: number
+  target_scope: string
+  target_companies: string[]
+  target_affiliations: string[]
 }
+
+const ALL_COMPANIES = ['高見起業', 'タイホー荷役', '翠星', '山大運輸', 'みらい']
+const ALL_AFFILIATIONS = ['ドライバー', 'リフトオペレーター', '事務職', '管理職']
 
 function normalizeVideoUrl(url: string) {
   if (!url) return ''
@@ -47,6 +53,9 @@ export default function EpisodesPage() {
   const [title, setTitle] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
   const [orderNo, setOrderNo] = useState('')
+  const [targetScope, setTargetScope] = useState('channel')
+  const [targetCompanies, setTargetCompanies] = useState<string[]>([])
+  const [targetAffiliations, setTargetAffiliations] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
   const fetchAll = async () => {
@@ -54,15 +63,36 @@ export default function EpisodesPage() {
     if (ch) setChannels(ch)
 
     const { data: ep } = await supabase.from('episodes').select('*').order('order_no')
-    if (ep) setEpisodes(ep)
+    if (ep) setEpisodes(ep as Episode[])
   }
 
   useEffect(() => {
     fetchAll()
   }, [])
 
+  useEffect(() => {
+    if (targetScope === 'channel') {
+      setTargetCompanies([])
+      setTargetAffiliations([])
+    }
+  }, [targetScope])
+
+  const toggleCompany = (value: string) => {
+    setTargetCompanies((prev) =>
+      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
+    )
+  }
+
+  const toggleAffiliation = (value: string) => {
+    setTargetAffiliations((prev) =>
+      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
+    )
+  }
+
   const handleCreate = async () => {
     if (!title || !channelId || !orderNo) return
+    if (targetScope === 'custom' && targetCompanies.length === 0) return
+    if (targetScope === 'custom' && targetAffiliations.length === 0) return
 
     setLoading(true)
 
@@ -71,14 +101,32 @@ export default function EpisodesPage() {
       video_url: normalizeVideoUrl(videoUrl),
       channel_id: Number(channelId),
       order_no: Number(orderNo),
+      target_scope: targetScope,
+      target_companies: targetScope === 'channel' ? [] : targetCompanies,
+      target_affiliations: targetScope === 'channel' ? [] : targetAffiliations,
     })
 
     setTitle('')
     setVideoUrl('')
     setOrderNo('')
+    setTargetScope('channel')
+    setTargetCompanies([])
+    setTargetAffiliations([])
 
     await fetchAll()
     setLoading(false)
+  }
+
+  const getTargetLabel = (ep: Episode) => {
+    if (ep.target_scope === 'channel' || !ep.target_scope) return 'チャンネル設定を使う'
+
+    const companies = ep.target_companies || []
+    const affiliations = ep.target_affiliations || []
+
+    if (companies.length === 0 && affiliations.length === 0) return '未設定'
+    if (companies.length > 0 && affiliations.length === 0) return `会社: ${companies.join(' / ')}`
+    if (companies.length === 0 && affiliations.length > 0) return `所属: ${affiliations.join(' / ')}`
+    return `会社: ${companies.join(' / ')} / 所属: ${affiliations.join(' / ')}`
   }
 
   return (
@@ -238,7 +286,7 @@ export default function EpisodesPage() {
             />
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '16px' }}>
             <label
               style={{
                 fontSize: '13px',
@@ -265,6 +313,102 @@ export default function EpisodesPage() {
               }}
             />
           </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label
+              style={{
+                fontSize: '13px',
+                color: '#475569',
+                marginBottom: '6px',
+                display: 'block',
+              }}
+            >
+              対象設定
+            </label>
+            <select
+              value={targetScope}
+              onChange={(e) => setTargetScope(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '15px',
+                color: '#0f172a',
+                backgroundColor: '#f8fafc',
+                boxSizing: 'border-box',
+              }}
+            >
+              <option value="channel">チャンネル設定を使う</option>
+              <option value="custom">この動画で個別設定する</option>
+            </select>
+          </div>
+
+          {targetScope === 'custom' && (
+            <>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '13px', color: '#475569', marginBottom: '10px', display: 'block' }}>
+                  対象会社
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
+                  {ALL_COMPANIES.map((company) => (
+                    <label
+                      key={company}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        color: '#334155',
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={targetCompanies.includes(company)}
+                        onChange={() => toggleCompany(company)}
+                      />
+                      {company}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '13px', color: '#475569', marginBottom: '10px', display: 'block' }}>
+                  対象所属
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
+                  {ALL_AFFILIATIONS.map((affiliation) => (
+                    <label
+                      key={affiliation}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        color: '#334155',
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={targetAffiliations.includes(affiliation)}
+                        onChange={() => toggleAffiliation(affiliation)}
+                      />
+                      {affiliation}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           <button
             onClick={handleCreate}
@@ -310,30 +454,33 @@ export default function EpisodesPage() {
                     borderRadius: '8px',
                     padding: '16px 20px',
                     marginBottom: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: '12px',
-                      color: '#fff',
-                      backgroundColor: '#2563eb',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    #{ep.order_no}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '6px' }}>
+                    <span
+                      style={{
+                        fontSize: '12px',
+                        color: '#fff',
+                        backgroundColor: '#2563eb',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      #{ep.order_no}
+                    </span>
 
-                  <span style={{ fontSize: '15px', color: '#1e3a5f', fontWeight: '500' }}>{ep.title}</span>
+                    <span style={{ fontSize: '15px', color: '#1e3a5f', fontWeight: '500' }}>{ep.title}</span>
 
-                  {ep.video_url && (
-                    <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: 'auto' }}>登録済み</span>
-                  )}
+                    {ep.video_url && (
+                      <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: 'auto' }}>登録済み</span>
+                    )}
+                  </div>
+
+                  <p style={{ fontSize: '13px', color: '#64748b', paddingLeft: '44px' }}>
+                    対象: {getTargetLabel(ep)}
+                  </p>
                 </div>
               ))}
           </div>
