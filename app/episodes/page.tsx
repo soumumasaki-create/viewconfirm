@@ -117,16 +117,44 @@ export default function EpisodesPage() {
     setLoading(false)
   }
 
-  const getTargetLabel = (ep: Episode) => {
-    if (ep.target_scope === 'channel' || !ep.target_scope) return 'チャンネル設定を使う'
+  const getTargetBadges = (ep: Episode) => {
+    if (ep.target_scope === 'channel' || !ep.target_scope) {
+      return [{ label: 'チャンネル設定を使う', bg: '#e0e7ff', color: '#3730a3' }]
+    }
 
     const companies = ep.target_companies || []
     const affiliations = ep.target_affiliations || []
+    const badges: { label: string; bg: string; color: string }[] = []
 
-    if (companies.length === 0 && affiliations.length === 0) return '未設定'
-    if (companies.length > 0 && affiliations.length === 0) return `会社: ${companies.join(' / ')}`
-    if (companies.length === 0 && affiliations.length > 0) return `所属: ${affiliations.join(' / ')}`
-    return `会社: ${companies.join(' / ')} / 所属: ${affiliations.join(' / ')}`
+    if (companies.length > 0) {
+      companies.forEach((company) => {
+        badges.push({
+          label: `会社: ${company}`,
+          bg: '#dbeafe',
+          color: '#1d4ed8',
+        })
+      })
+    }
+
+    if (affiliations.length > 0) {
+      affiliations.forEach((affiliation) => {
+        badges.push({
+          label: `所属: ${affiliation}`,
+          bg: '#fef3c7',
+          color: '#b45309',
+        })
+      })
+    }
+
+    if (badges.length === 0) {
+      badges.push({
+        label: '未設定',
+        bg: '#e2e8f0',
+        color: '#475569',
+      })
+    }
+
+    return badges
   }
 
   return (
@@ -451,13 +479,13 @@ export default function EpisodesPage() {
                   style={{
                     backgroundColor: '#fff',
                     border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
+                    borderRadius: '10px',
                     padding: '16px 20px',
-                    marginBottom: '8px',
+                    marginBottom: '10px',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
                     <span
                       style={{
                         fontSize: '12px',
@@ -478,9 +506,29 @@ export default function EpisodesPage() {
                     )}
                   </div>
 
-                  <p style={{ fontSize: '13px', color: '#64748b', paddingLeft: '44px' }}>
-                    対象: {getTargetLabel(ep)}
-                  </p>
+                  <div style={{ paddingLeft: '44px' }}>
+                    <div style={{ color: '#475569', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
+                      誰向けか
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {getTargetBadges(ep).map((badge, index) => (
+                        <span
+                          key={`${ep.id}-${badge.label}-${index}`}
+                          style={{
+                            display: 'inline-block',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            padding: '5px 10px',
+                            borderRadius: '999px',
+                            backgroundColor: badge.bg,
+                            color: badge.color,
+                          }}
+                        >
+                          {badge.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               ))}
           </div>

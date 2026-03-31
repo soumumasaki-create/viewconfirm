@@ -188,17 +188,44 @@ export default function ChannelsPage() {
     await fetchChannels()
   }
 
-  const getTargetLabel = (ch: Channel) => {
-    if (ch.target_scope === 'all') return '全社員対象'
+  const getTargetBadges = (ch: Channel) => {
+    if (ch.target_scope === 'all') {
+      return [{ label: '全社員対象', bg: '#dcfce7', color: '#166534' }]
+    }
 
     const companies = ch.target_companies || []
     const affiliations = ch.target_affiliations || []
+    const badges: { label: string; bg: string; color: string }[] = []
 
-    if (companies.length === 0 && affiliations.length === 0) return '未設定'
-    if (companies.length > 0 && affiliations.length === 0) return `会社: ${companies.join(' / ')}`
-    if (companies.length === 0 && affiliations.length > 0) return `所属: ${affiliations.join(' / ')}`
+    if (companies.length > 0) {
+      companies.forEach((company) => {
+        badges.push({
+          label: `会社: ${company}`,
+          bg: '#dbeafe',
+          color: '#1d4ed8',
+        })
+      })
+    }
 
-    return `会社: ${companies.join(' / ')} / 所属: ${affiliations.join(' / ')}`
+    if (affiliations.length > 0) {
+      affiliations.forEach((affiliation) => {
+        badges.push({
+          label: `所属: ${affiliation}`,
+          bg: '#fef3c7',
+          color: '#b45309',
+        })
+      })
+    }
+
+    if (badges.length === 0) {
+      badges.push({
+        label: '未設定',
+        bg: '#e2e8f0',
+        color: '#475569',
+      })
+    }
+
+    return badges
   }
 
   return (
@@ -314,10 +341,33 @@ export default function ChannelsPage() {
               <div style={{ padding:'16px' }}>
                 <h3 style={{ fontSize:'16px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'6px' }}>{ch.title}</h3>
                 {ch.description && <p style={{ color:'#64748b', fontSize:'13px', marginBottom:'12px' }}>{ch.description}</p>}
-                <p style={{ color:'#475569', fontSize:'13px', marginBottom:'10px' }}>対象: {getTargetLabel(ch)}</p>
+
+                <div style={{ marginBottom:'10px' }}>
+                  <div style={{ color:'#475569', fontSize:'12px', fontWeight:'bold', marginBottom:'6px' }}>誰向けか</div>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
+                    {getTargetBadges(ch).map((badge, index) => (
+                      <span
+                        key={`${ch.id}-${badge.label}-${index}`}
+                        style={{
+                          display:'inline-block',
+                          fontSize:'12px',
+                          fontWeight:'bold',
+                          padding:'5px 10px',
+                          borderRadius:'999px',
+                          backgroundColor: badge.bg,
+                          color: badge.color,
+                        }}
+                      >
+                        {badge.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
                 <span style={{ fontSize:'12px', padding:'3px 10px', borderRadius:'20px', backgroundColor: ch.published ? '#dcfce7' : '#fef9c3', color: ch.published ? '#16a34a' : '#ca8a04', fontWeight:'bold' }}>
                   {ch.published ? '公開中' : '非公開'}
                 </span>
+
                 <div style={{ display:'flex', gap:'8px', marginTop:'12px' }}>
                   <button onClick={() => handleEditOpen(ch)} style={{ flex:1, padding:'7px', backgroundColor:'#1e3a5f', color:'#fff', border:'none', borderRadius:'6px', cursor:'pointer', fontSize:'13px' }}>編集</button>
                   <button onClick={() => handleDelete(ch.id, ch.title)} style={{ flex:1, padding:'7px', backgroundColor:'#ef4444', color:'#fff', border:'none', borderRadius:'6px', cursor:'pointer', fontSize:'13px' }}>削除</button>
