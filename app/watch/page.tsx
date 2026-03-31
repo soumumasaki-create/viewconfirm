@@ -1,4 +1,5 @@
 ﻿'use client'
+
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
@@ -7,6 +8,9 @@ type Channel = {
   title: string
   description: string
   thumbnail_url: string
+  target_scope: string
+  target_companies: string[]
+  target_affiliations: string[]
 }
 
 type Episode = {
@@ -15,6 +19,9 @@ type Episode = {
   video_url: string
   channel_id: number
   order_no: number
+  target_scope: string
+  target_companies: string[]
+  target_affiliations: string[]
 }
 
 type NamePair = {
@@ -110,6 +117,30 @@ function getMediaInfo(url: string) {
   }
 }
 
+function includesTargetValue(list: string[] | null | undefined, value: string) {
+  if (!list || list.length === 0) return false
+  return list.includes(value)
+}
+
+function canViewChannel(
+  channel: Channel,
+  employeeCompany: string,
+  employeeAffiliation: string
+) {
+  if (!channel.target_scope || channel.target_scope === 'all') return true
+
+  const companies = channel.target_companies || []
+  const affiliations = channel.target_affiliations || []
+
+  const companyMatched =
+    companies.length === 0 || includesTargetValue(companies, employeeCompany)
+
+  const affiliationMatched =
+    affiliations.length === 0 || includesTargetValue(affiliations, employeeAffiliation)
+
+  return companyMatched && affiliationMatched
+}
+
 export default function WatchPage() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [episodes, setEpisodes] = useState<Episode[]>([])
@@ -132,16 +163,18 @@ export default function WatchPage() {
   const [isEmployee, setIsEmployee] = useState(false)
   const [loginName, setLoginName] = useState('')
   const [canComplete, setCanComplete] = useState(false)
+  const [employeeCompany, setEmployeeCompany] = useState('')
+  const [employeeAffiliation, setEmployeeAffiliation] = useState('')
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
       const { data: ch } = await supabase.from('channels').select('*').order('id')
-      if (ch) setChannels(ch)
+      if (ch) setChannels(ch as Channel[])
 
       const { data: ep } = await supabase.from('episodes').select('*').order('order_no')
-      if (ep) setEpisodes(ep)
+      if (ep) setEpisodes(ep as Episode[])
 
       const { data: co } = await supabase.from('companies').select('*').order('id')
       if (co) setCompanies(co)
@@ -155,7 +188,7 @@ export default function WatchPage() {
 
         const { data: emp } = await supabase
           .from('employees')
-          .select('last_name, first_name, company')
+          .select('last_name, first_name, company, affiliation')
           .eq('email', user.email)
           .single()
 
@@ -163,6 +196,8 @@ export default function WatchPage() {
           const fullName = `${emp.last_name} ${emp.first_name}`
           setLoginName(fullName)
           setMyName(fullName)
+          setEmployeeCompany(emp.company || '')
+          setEmployeeAffiliation(emp.affiliation || '')
 
           const { data: co2 } = await supabase
             .from('companies')
@@ -264,6 +299,13 @@ export default function WatchPage() {
     newNames[index][field] = value
     setSubNames(newNames)
   }
+
+  const visibleChannels =
+    isEmployee && employeeCompany && employeeAffiliation
+      ? channels.filter((ch) =>
+          canViewChannel(ch, employeeCompany, employeeAffiliation)
+        )
+      : channels
 
   const channelEpisodes = selectedChannel
     ? episodes.filter((ep) => ep.channel_id === selectedChannel.id)
@@ -443,7 +485,7 @@ export default function WatchPage() {
                 gap: '16px',
               }}
             >
-              {channels.map((ch) => (
+              {visibleChannels.map((ch) => (
                 <div
                   key={ch.id}
                   onClick={() => setSelectedChannel(ch)}
@@ -505,6 +547,12 @@ export default function WatchPage() {
                 </div>
               ))}
             </div>
+
+            {visibleChannels.length === 0 && (
+              <p style={{ color: '#94a3b8', marginTop: '16px' }}>
+                表示できるチャンネルがありません
+              </p>
+            )}
           </div>
         )}
 
