@@ -69,11 +69,7 @@ export default function AdminDashboardPage() {
 
   const affiliationOptions = selectedCompany
     ? COMPANY_AFFILIATIONS[selectedCompany.name] || []
-    : Array.from(
-        new Set(
-          Object.values(COMPANY_AFFILIATIONS).flat()
-        )
-      )
+    : Array.from(new Set(Object.values(COMPANY_AFFILIATIONS).flat()))
 
   const companyEmployees = employees.filter((e) => {
     const companyMatched = !selectedCompanyId || e.company === selectedCompany?.name
@@ -173,7 +169,7 @@ export default function AdminDashboardPage() {
             fontSize: '22px',
             fontWeight: 'bold',
             color: '#1e3a5f',
-            marginBottom: '32px',
+            marginBottom: '24px',
           }}
         >
           📊 視聴状況ダッシュボード
@@ -181,117 +177,131 @@ export default function AdminDashboardPage() {
 
         <div
           style={{
-            backgroundColor: '#fff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '12px',
+            backgroundColor: '#ffffff',
+            border: '1px solid #dbeafe',
+            borderRadius: '16px',
             padding: '28px',
-            marginBottom: '32px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
-            gap: '20px',
+            marginBottom: '28px',
+            boxShadow: '0 4px 14px rgba(30,58,95,0.06)',
           }}
         >
-          <div>
-            <label
-              style={{
-                fontSize: '13px',
-                color: '#475569',
-                marginBottom: '6px',
-                display: 'block',
-                fontWeight: '600',
-              }}
-            >
-              ① 会社を選択（任意）
-            </label>
-            <select
-              value={selectedCompanyId ?? ''}
-              onChange={(e) => setSelectedCompanyId(e.target.value ? Number(e.target.value) : null)}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '15px',
-                color: '#0f172a',
-                backgroundColor: '#f8fafc',
-              }}
-            >
-              <option value="">全社員</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+          <div style={{ marginBottom: '18px' }}>
+            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '6px' }}>
+              絞り込み条件
+            </div>
+            <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
+              会社・所属・チャンネルを選ぶと、対象社員の視聴状況を下に表示します。
+            </p>
           </div>
 
-          <div>
-            <label
-              style={{
-                fontSize: '13px',
-                color: '#475569',
-                marginBottom: '6px',
-                display: 'block',
-                fontWeight: '600',
-              }}
-            >
-              ② 所属を選択（任意）
-            </label>
-            <select
-              value={selectedAffiliation}
-              onChange={(e) => setSelectedAffiliation(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '15px',
-                color: '#0f172a',
-                backgroundColor: '#f8fafc',
-              }}
-            >
-              <option value="">全所属</option>
-              {affiliationOptions.map((affiliation) => (
-                <option key={affiliation} value={affiliation}>
-                  {affiliation}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: '20px',
+            }}
+          >
+            <div>
+              <label
+                style={{
+                  fontSize: '13px',
+                  color: '#475569',
+                  marginBottom: '6px',
+                  display: 'block',
+                  fontWeight: '600',
+                }}
+              >
+                ① 会社を選択（任意）
+              </label>
+              <select
+                value={selectedCompanyId ?? ''}
+                onChange={(e) => setSelectedCompanyId(e.target.value ? Number(e.target.value) : null)}
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '15px',
+                  color: '#0f172a',
+                  backgroundColor: '#f8fafc',
+                }}
+              >
+                <option value="">全社員</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label
-              style={{
-                fontSize: '13px',
-                color: '#475569',
-                marginBottom: '6px',
-                display: 'block',
-                fontWeight: '600',
-              }}
-            >
-              ③ チャンネルを選択
-            </label>
-            <select
-              value={selectedChannelId ?? ''}
-              onChange={(e) => setSelectedChannelId(e.target.value ? Number(e.target.value) : null)}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '15px',
-                color: '#0f172a',
-                backgroundColor: '#f8fafc',
-              }}
-            >
-              <option value="">チャンネルを選んでください</option>
-              {channels.map((ch) => (
-                <option key={ch.id} value={ch.id}>
-                  {ch.title}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label
+                style={{
+                  fontSize: '13px',
+                  color: '#475569',
+                  marginBottom: '6px',
+                  display: 'block',
+                  fontWeight: '600',
+                }}
+              >
+                ② 所属を選択（任意）
+              </label>
+              <select
+                value={selectedAffiliation}
+                onChange={(e) => setSelectedAffiliation(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '15px',
+                  color: '#0f172a',
+                  backgroundColor: '#f8fafc',
+                }}
+              >
+                <option value="">全所属</option>
+                {affiliationOptions.map((affiliation) => (
+                  <option key={affiliation} value={affiliation}>
+                    {affiliation}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label
+                style={{
+                  fontSize: '13px',
+                  color: '#475569',
+                  marginBottom: '6px',
+                  display: 'block',
+                  fontWeight: '600',
+                }}
+              >
+                ③ チャンネルを選択
+              </label>
+              <select
+                value={selectedChannelId ?? ''}
+                onChange={(e) => setSelectedChannelId(e.target.value ? Number(e.target.value) : null)}
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '15px',
+                  color: '#0f172a',
+                  backgroundColor: '#f8fafc',
+                }}
+              >
+                <option value="">チャンネルを選んでください</option>
+                {channels.map((ch) => (
+                  <option key={ch.id} value={ch.id}>
+                    {ch.title}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -300,28 +310,36 @@ export default function AdminDashboardPage() {
             <div
               style={{
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'stretch',
                 justifyContent: 'space-between',
+                gap: '16px',
                 marginBottom: '16px',
+                flexWrap: 'wrap',
               }}
             >
               <div
                 style={{
-                  padding: '12px 20px',
+                  flex: 1,
+                  minWidth: '320px',
                   backgroundColor: '#1e3a5f',
-                  borderRadius: '10px',
+                  borderRadius: '12px',
                   color: '#fff',
-                  fontSize: '14px',
+                  padding: '16px 20px',
                 }}
               >
-                <strong>{selectedCompany?.name || '全社員'}</strong>
-                <span>　×　</span>
-                <strong>{selectedAffiliation || '全所属'}</strong>
-                <span>　×　</span>
-                <strong>「{selectedChannel?.title}」</strong>
-                <span style={{ marginLeft: '16px', fontSize: '13px', color: '#93c5fd' }}>
+                <div style={{ fontSize: '12px', color: '#93c5fd', marginBottom: '8px' }}>
+                  現在の表示条件
+                </div>
+                <div style={{ fontSize: '14px', lineHeight: '1.8' }}>
+                  <strong>会社：</strong>{selectedCompany?.name || '全社員'}
+                  <span style={{ margin: '0 12px', color: '#93c5fd' }}>|</span>
+                  <strong>所属：</strong>{selectedAffiliation || '全所属'}
+                  <span style={{ margin: '0 12px', color: '#93c5fd' }}>|</span>
+                  <strong>チャンネル：</strong>{selectedChannel?.title}
+                </div>
+                <div style={{ marginTop: '8px', fontSize: '13px', color: '#bfdbfe' }}>
                   対象社員 {companyEmployees.length}名
-                </span>
+                </div>
               </div>
 
               <button
@@ -331,14 +349,24 @@ export default function AdminDashboardPage() {
                   backgroundColor: '#16a34a',
                   color: '#fff',
                   border: 'none',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   fontSize: '14px',
                   fontWeight: 'bold',
+                  minHeight: '52px',
                 }}
               >
                 📥 CSVダウンロード
               </button>
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
+                対象社員の視聴状況
+              </div>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+                各動画の視聴済み人数と、社員ごとの視聴日時を確認できます。
+              </p>
             </div>
 
             <div
@@ -489,14 +517,36 @@ export default function AdminDashboardPage() {
         )}
 
         {selectedChannelId && companyEmployees.length === 0 && (
-          <p style={{ color: '#94a3b8', textAlign: 'center', padding: '40px' }}>
-            該当する社員が登録されていません
-          </p>
+          <div
+            style={{
+              backgroundColor: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '40px',
+              textAlign: 'center',
+            }}
+          >
+            <p style={{ color: '#94a3b8', margin: 0 }}>
+              該当する社員が登録されていません
+            </p>
+          </div>
         )}
 
         {!selectedChannelId && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px' }}>
-            <p style={{ color: '#94a3b8', fontSize: '16px' }}>チャンネルを選択してください</p>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '60px',
+              backgroundColor: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+            }}
+          >
+            <p style={{ color: '#94a3b8', fontSize: '16px', margin: 0 }}>
+              チャンネルを選択してください
+            </p>
           </div>
         )}
       </main>
