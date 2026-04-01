@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
 type Channel = {
@@ -20,7 +20,22 @@ type Episode = {
 }
 
 const ALL_COMPANIES = ['高見起業', 'タイホー荷役', '翠星', '山大運輸', 'みらい']
+
+const COMPANY_AFFILIATIONS: Record<string, string[]> = {
+  高見起業: ['ドライバー', 'リフトオペレーター', '事務職', '管理職'],
+  タイホー荷役: ['リフトオペレーター', '事務職', '管理職'],
+  翠星: ['ドライバー', '事務職', '管理職'],
+  山大運輸: ['ドライバー', '事務職', '管理職'],
+  みらい: ['事務職', '管理職'],
+}
+
 const ALL_AFFILIATIONS = ['ドライバー', 'リフトオペレーター', '事務職', '管理職']
+
+type Badge = {
+  label: string
+  bg: string
+  color: string
+}
 
 function normalizeVideoUrl(url: string) {
   if (!url) return ''
@@ -70,12 +85,29 @@ export default function EpisodesPage() {
     fetchAll()
   }, [])
 
+  const availableAffiliations = useMemo(() => {
+    if (targetCompanies.length === 0) return ALL_AFFILIATIONS
+    const merged = new Set<string>()
+    targetCompanies.forEach((company) => {
+      ;(COMPANY_AFFILIATIONS[company] || []).forEach((affiliation) => merged.add(affiliation))
+    })
+    return ALL_AFFILIATIONS.filter((affiliation) => merged.has(affiliation))
+  }, [targetCompanies])
+
   useEffect(() => {
     if (targetScope === 'channel') {
       setTargetCompanies([])
       setTargetAffiliations([])
     }
   }, [targetScope])
+
+  useEffect(() => {
+    if (targetScope === 'custom') {
+      setTargetAffiliations((prev) =>
+        prev.filter((affiliation) => availableAffiliations.includes(affiliation))
+      )
+    }
+  }, [targetCompanies, targetScope, availableAffiliations])
 
   const toggleCompany = (value: string) => {
     setTargetCompanies((prev) =>
@@ -124,7 +156,7 @@ export default function EpisodesPage() {
 
     const companies = ep.target_companies || []
     const affiliations = ep.target_affiliations || []
-    const badges: { label: string; bg: string; color: string }[] = []
+    const badges: Badge[] = []
 
     if (companies.length > 0) {
       companies.forEach((company) => {
@@ -155,6 +187,76 @@ export default function EpisodesPage() {
     }
 
     return badges
+  }
+
+  const renderSelectionSummary = (companies: string[], affiliations: string[]) => {
+    if (companies.length === 0 && affiliations.length === 0) {
+      return (
+        <div
+          style={{
+            marginTop: '12px',
+            padding: '12px 14px',
+            borderRadius: '10px',
+            backgroundColor: '#fff7ed',
+            border: '1px solid #fdba74',
+            color: '#9a3412',
+            fontSize: '13px',
+          }}
+        >
+          まだ対象が選ばれていません。まず会社を選び、そのあと所属を選んでください。
+        </div>
+      )
+    }
+
+    return (
+      <div
+        style={{
+          marginTop: '12px',
+          padding: '12px 14px',
+          borderRadius: '10px',
+          backgroundColor: '#eff6ff',
+          border: '1px solid #bfdbfe',
+        }}
+      >
+        <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1d4ed8', marginBottom: '8px' }}>
+          現在の対象
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          {companies.map((company) => (
+            <span
+              key={`summary-company-${company}`}
+              style={{
+                display: 'inline-block',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '5px 10px',
+                borderRadius: '999px',
+                backgroundColor: '#dbeafe',
+                color: '#1d4ed8',
+              }}
+            >
+              会社: {company}
+            </span>
+          ))}
+          {affiliations.map((affiliation) => (
+            <span
+              key={`summary-affiliation-${affiliation}`}
+              style={{
+                display: 'inline-block',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '5px 10px',
+                borderRadius: '999px',
+                backgroundColor: '#fef3c7',
+                color: '#b45309',
+              }}
+            >
+              所属: {affiliation}
+            </span>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -370,11 +472,31 @@ export default function EpisodesPage() {
               <option value="channel">チャンネル設定を使う</option>
               <option value="custom">この動画で個別設定する</option>
             </select>
+            <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b', lineHeight: 1.6 }}>
+              「この動画で個別設定する」を選んだ場合は、下で対象を選んでください。
+            </div>
           </div>
 
           {targetScope === 'custom' && (
-            <>
-              <div style={{ marginBottom: '16px' }}>
+            <div
+              style={{
+                marginBottom: '20px',
+                padding: '16px',
+                borderRadius: '12px',
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '6px' }}>
+                対象の選び方
+              </div>
+              <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.7 }}>
+                1. 先に会社を選びます。<br />
+                2. 選んだ会社で使う所属だけが、所属欄に出ます。<br />
+                3. 会社と所属の両方を選ぶと、この動画だけ個別に設定できます。
+              </div>
+
+              <div style={{ marginTop: '16px', marginBottom: '16px' }}>
                 <label style={{ fontSize: '13px', color: '#475569', marginBottom: '10px', display: 'block' }}>
                   対象会社
                 </label>
@@ -388,7 +510,7 @@ export default function EpisodesPage() {
                         gap: '8px',
                         fontSize: '14px',
                         color: '#334155',
-                        backgroundColor: '#f8fafc',
+                        backgroundColor: '#ffffff',
                         border: '1px solid #cbd5e1',
                         borderRadius: '8px',
                         padding: '10px 12px',
@@ -405,12 +527,15 @@ export default function EpisodesPage() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginBottom: '8px' }}>
                 <label style={{ fontSize: '13px', color: '#475569', marginBottom: '10px', display: 'block' }}>
                   対象所属
                 </label>
+                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px' }}>
+                  選んだ会社で使える所属だけを表示しています。
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
-                  {ALL_AFFILIATIONS.map((affiliation) => (
+                  {availableAffiliations.map((affiliation) => (
                     <label
                       key={affiliation}
                       style={{
@@ -419,7 +544,7 @@ export default function EpisodesPage() {
                         gap: '8px',
                         fontSize: '14px',
                         color: '#334155',
-                        backgroundColor: '#f8fafc',
+                        backgroundColor: '#ffffff',
                         border: '1px solid #cbd5e1',
                         borderRadius: '8px',
                         padding: '10px 12px',
@@ -435,7 +560,9 @@ export default function EpisodesPage() {
                   ))}
                 </div>
               </div>
-            </>
+
+              {renderSelectionSummary(targetCompanies, targetAffiliations)}
+            </div>
           )}
 
           <button
