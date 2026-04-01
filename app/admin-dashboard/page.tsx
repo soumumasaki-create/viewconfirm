@@ -225,6 +225,10 @@ export default function AdminDashboardPage() {
     )
   }
 
+  const totalPossibleViews = companyEmployees.length * channelEpisodes.length
+  const totalCompletedViews = channelEpisodes.reduce((sum, ep) => sum + watchedCount(ep.id), 0)
+  const overallRate = totalPossibleViews === 0 ? 0 : Math.round((totalCompletedViews / totalPossibleViews) * 100)
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
       <header
@@ -481,6 +485,47 @@ export default function AdminDashboardPage() {
               >
                 📥 CSVダウンロード
               </button>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: '#fff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '18px 20px',
+                marginBottom: '18px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              }}
+            >
+              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '6px' }}>
+                チャンネル全体の進捗
+              </div>
+              <div style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.7', marginBottom: '12px' }}>
+                対象社員と対象動画を合わせた全体の視聴率です。
+              </div>
+              <div style={{ fontSize: '14px', color: '#166534', fontWeight: 'bold', marginBottom: '8px' }}>
+                {totalCompletedViews}/{totalPossibleViews} 件 視聴済み
+              </div>
+              <div
+                style={{
+                  width: '100%',
+                  height: '10px',
+                  backgroundColor: '#e2e8f0',
+                  borderRadius: '999px',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${overallRate}%`,
+                    height: '100%',
+                    backgroundColor: '#16a34a',
+                  }}
+                />
+              </div>
+              <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b' }}>
+                全体進捗 {overallRate}%
+              </div>
             </div>
 
             <div style={{ marginBottom: '14px' }}>
