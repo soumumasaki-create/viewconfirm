@@ -421,6 +421,8 @@ export default function WatchPage() {
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '18px',
+              color: '#fff',
+              fontWeight: 'bold',
             }}
           >
             VC
@@ -498,24 +500,30 @@ export default function WatchPage() {
         </div>
       </header>
 
-      <main style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
+      <main style={{ padding: '24px 20px 40px', maxWidth: '900px', margin: '0 auto' }}>
         {!selectedChannel && !selectedEpisode && (
           <div>
-            <h2
+            <div
               style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: '#1e3a5f',
+                backgroundColor: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '12px',
+                padding: '16px 18px',
                 marginBottom: '20px',
               }}
             >
-              チャンネルを選んでください
-            </h2>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '6px' }}>
+                視聴するチャンネルを選んでください
+              </div>
+              <div style={{ fontSize: '13px', color: '#475569', lineHeight: 1.7 }}>
+                表示されているチャンネルは、あなたの会社・所属に合うものだけです。
+              </div>
+            </div>
 
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
                 gap: '16px',
               }}
             >
@@ -555,25 +563,26 @@ export default function WatchPage() {
                         justifyContent: 'center',
                         fontSize: '24px',
                         color: '#fff',
+                        fontWeight: 'bold',
                       }}
                     >
                       CH
                     </div>
                   )}
 
-                  <div style={{ padding: '10px 12px' }}>
+                  <div style={{ padding: '12px 14px' }}>
                     <div
                       style={{
-                        fontSize: '13px',
+                        fontSize: '14px',
                         fontWeight: 'bold',
                         color: '#1e3a5f',
-                        lineHeight: '1.4',
+                        lineHeight: '1.5',
                       }}
                     >
                       {ch.title}
                     </div>
                     {ch.description && (
-                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px', lineHeight: 1.6 }}>
                         {ch.description}
                       </div>
                     )}
@@ -625,7 +634,7 @@ export default function WatchPage() {
                   alt={selectedChannel.title}
                   style={{
                     width: '100%',
-                    maxHeight: '200px',
+                    maxHeight: '220px',
                     objectFit: 'contain',
                     backgroundColor: '#f1f5f9',
                     display: 'block',
@@ -642,41 +651,48 @@ export default function WatchPage() {
                     justifyContent: 'center',
                     fontSize: '36px',
                     color: '#fff',
+                    fontWeight: 'bold',
                   }}
                 >
                   CH
                 </div>
               )}
 
-              <div style={{ padding: '16px 20px' }}>
+              <div style={{ padding: '18px 20px' }}>
                 <h2
                   style={{
-                    fontSize: '18px',
+                    fontSize: '19px',
                     fontWeight: 'bold',
                     color: '#1e3a5f',
-                    marginBottom: '4px',
+                    marginBottom: '6px',
                   }}
                 >
                   {selectedChannel.title}
                 </h2>
                 {selectedChannel.description && (
-                  <p style={{ fontSize: '13px', color: '#64748b' }}>
+                  <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7 }}>
                     {selectedChannel.description}
                   </p>
                 )}
               </div>
             </div>
 
-            <h3
+            <div
               style={{
-                fontSize: '15px',
-                fontWeight: 'bold',
-                color: '#1e3a5f',
-                marginBottom: '12px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '16px 18px',
+                marginBottom: '16px',
               }}
             >
-              番組一覧
-            </h3>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '6px' }}>
+                動画一覧
+              </div>
+              <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7 }}>
+                上から順番に視聴してください。前の動画を見終わると、次の動画を開けます。
+              </div>
+            </div>
 
             {channelEpisodes.length === 0 && <p style={{ color: '#94a3b8' }}>動画がありません</p>}
 
@@ -726,6 +742,7 @@ export default function WatchPage() {
                       color: '#1e3a5f',
                       fontWeight: '500',
                       flex: 1,
+                      lineHeight: 1.5,
                     }}
                   >
                     第{ep.order_no}回　{ep.title}
@@ -775,19 +792,32 @@ export default function WatchPage() {
                 fontWeight: 'bold',
               }}
             >
-              ← 番組一覧に戻る
+              ← 動画一覧に戻る
             </button>
 
-            <h2
+            <div
               style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: '#1e3a5f',
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '16px 18px',
                 marginBottom: '16px',
               }}
             >
-              第{selectedEpisode.order_no}回　{selectedEpisode.title}
-            </h2>
+              <h2
+                style={{
+                  fontSize: '19px',
+                  fontWeight: 'bold',
+                  color: '#1e3a5f',
+                  marginBottom: '6px',
+                }}
+              >
+                第{selectedEpisode.order_no}回　{selectedEpisode.title}
+              </h2>
+              <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7 }}>
+                動画を見終わったあと、下の「視聴完了」を押してください。
+              </div>
+            </div>
 
             {renderMedia()}
 
@@ -812,8 +842,8 @@ export default function WatchPage() {
                   視聴完了を記録する
                 </h3>
 
-                <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>
-                  同時視聴の場合は、氏名2〜5も入力してください
+                <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px', lineHeight: 1.7 }}>
+                  複数人で一緒に見た場合は、下に氏名2〜5も入力してください。
                 </p>
 
                 <div style={{ marginBottom: '16px' }}>
@@ -966,9 +996,10 @@ export default function WatchPage() {
                   borderRadius: '12px',
                   padding: '20px',
                   color: '#9a3412',
+                  lineHeight: 1.7,
                 }}
               >
-                初回視聴中です。3分経過後に視聴完了ボタンが表示されます。
+                初回視聴中です。3分経過後に「視聴完了」ボタンが表示されます。
               </div>
             )}
 
@@ -1005,7 +1036,7 @@ export default function WatchPage() {
                     fontSize: '15px',
                   }}
                 >
-                  次の動画へ
+                  動画一覧に戻る
                 </button>
               </div>
             )}
