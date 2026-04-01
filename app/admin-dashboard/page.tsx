@@ -78,6 +78,7 @@ export default function AdminDashboardPage() {
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null)
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null)
   const [selectedAffiliation, setSelectedAffiliation] = useState('')
+  const [showOnlyUnwatched, setShowOnlyUnwatched] = useState(false)
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -132,6 +133,36 @@ export default function AdminDashboardPage() {
     return watchLogs.find((w) => w.user_name === userName && w.episode_id === episodeId)
   }
 
+  const getUnwatchedCount = (emp: Employee) => {
+    if (channelEpisodes.length === 0) return 0
+
+    const fullName = emp.last_name + ' ' + emp.first_name
+    return channelEpisodes.filter((ep) => !getWatchLog(fullName, ep.id)).length
+  }
+
+  const hasUnwatchedEpisode = (emp: Employee) => {
+    return getUnwatchedCount(emp) > 0
+  }
+
+  const displayedEmployeesBase = showOnlyUnwatched
+    ? companyEmployees.filter((emp) => hasUnwatchedEpisode(emp))
+    : companyEmployees
+
+  const displayedEmployees = [...displayedEmployeesBase].sort((a, b) => {
+    const diff = getUnwatchedCount(b) - getUnwatchedCount(a)
+    if (diff !== 0) return diff
+
+    const companyDiff = a.company.localeCompare(b.company, 'ja')
+    if (companyDiff !== 0) return companyDiff
+
+    const affiliationDiff = (a.affiliation || '').localeCompare(b.affiliation || '', 'ja')
+    if (affiliationDiff !== 0) return affiliationDiff
+
+    const aName = `${a.last_name} ${a.first_name}`
+    const bName = `${b.last_name} ${b.first_name}`
+    return aName.localeCompare(bName, 'ja')
+  })
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
     return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(
@@ -148,12 +179,13 @@ export default function AdminDashboardPage() {
       '氏名',
       '会社',
       '所属',
+      '未視聴数',
       ...channelEpisodes.map((ep) => ep.title + '（視聴日時）'),
     ]]
 
-    companyEmployees.forEach((emp) => {
+    displayedEmployees.forEach((emp) => {
       const fullName = emp.last_name + ' ' + emp.first_name
-      const row = [fullName, emp.company, emp.affiliation || '']
+      const row = [fullName, emp.company, emp.affiliation || '', String(getUnwatchedCount(emp))]
       channelEpisodes.forEach((ep) => {
         const log = getWatchLog(fullName, ep.id)
         row.push(log ? formatDate(log.watched_at) : '未視聴')
@@ -166,7 +198,7 @@ export default function AdminDashboardPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `視聴状況_${selectedChannel?.title || ''}_${selectedCompany?.name || '全社'}_${selectedAffiliation || '全所属'}.csv`
+    a.download = `視聴状況_${selectedChannel?.title || ''}_${selectedCompany?.name || '全社'}_${selectedAffiliation || '全所属'}_${showOnlyUnwatched ? '未視聴ありのみ' : '全件'}.csv`
     a.click()
   }
 
@@ -179,6 +211,7 @@ export default function AdminDashboardPage() {
     setSelectedCompanyId(null)
     setSelectedAffiliation('')
     setSelectedChannelId(null)
+    setShowOnlyUnwatched(false)
   }
 
   const renderConditionBadges = () => {
@@ -192,6 +225,11 @@ export default function AdminDashboardPage() {
         label: `所属: ${selectedAffiliation || '全所属'}`,
         bg: '#fef3c7',
         color: '#b45309',
+      },
+      {
+        label: `表示: ${showOnlyUnwatched ? '未視聴ありのみ' : '全員表示'}`,
+        bg: '#fee2e2',
+        color: '#b91c1c',
       },
     ]
 
@@ -227,7 +265,8 @@ export default function AdminDashboardPage() {
 
   const totalPossibleViews = companyEmployees.length * channelEpisodes.length
   const totalCompletedViews = channelEpisodes.reduce((sum, ep) => sum + watchedCount(ep.id), 0)
-  const overallRate = totalPossibleViews === 0 ? 0 : Math.round((totalCompletedViews / totalPossibleViews) * 100)
+  const overallRate =
+    totalPossibleViews === 0 ? 0 : Math.round((totalCompletedViews / totalPossibleViews) * 100)
   const remainingViews = totalPossibleViews - totalCompletedViews
 
   return (
@@ -411,7 +450,34 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+          <div
+            style={{
+              marginTop: '16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '14px',
+                color: '#334155',
+                fontWeight: '600',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={showOnlyUnwatched}
+                onChange={(e) => setShowOnlyUnwatched(e.target.checked)}
+              />
+              未視聴がある社員だけ表示
+            </label>
+
             <button
               onClick={clearFilters}
               style={{
@@ -463,7 +529,7 @@ export default function AdminDashboardPage() {
                   <strong>チャンネル：</strong>{selectedChannel?.title}
                 </div>
                 <div style={{ marginTop: '8px', fontSize: '13px', color: '#bfdbfe' }}>
-                  対象社員 {companyEmployees.length}名
+                  対象社員 {companyEmployees.length}名 ／ 表示中 {displayedEmployees.length}名
                 </div>
                 <div style={{ marginTop: '6px', fontSize: '12px', color: '#93c5fd', lineHeight: '1.7' }}>
                   チャンネル対象設定：{getChannelTargetSummary(selectedChannel)}
@@ -634,7 +700,15 @@ export default function AdminDashboardPage() {
                     <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
                       #{ep.order_no}
                     </div>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f', lineHeight: '1.6', marginBottom: '10px' }}>
+                    <div
+                      style={{
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        color: '#1e3a5f',
+                        lineHeight: '1.6',
+                        marginBottom: '10px',
+                      }}
+                    >
                       {ep.title}
                     </div>
                     <div style={{ fontSize: '13px', color: '#166534', fontWeight: 'bold', marginBottom: '8px' }}>
@@ -670,7 +744,7 @@ export default function AdminDashboardPage() {
                 対象社員の視聴状況
               </div>
               <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
-                横に長い表なので、左の「氏名・会社・所属」は固定しています。
+                未視聴が多い社員から上に表示しています。横に長い表なので、左の「氏名・会社・所属」は固定しています。
               </p>
             </div>
 
@@ -683,7 +757,7 @@ export default function AdminDashboardPage() {
                 boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
               }}
             >
-              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: '980px' }}>
+              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: '1080px' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#1e3a5f' }}>
                     <th
@@ -737,6 +811,19 @@ export default function AdminDashboardPage() {
                     >
                       所属
                     </th>
+                    <th
+                      style={{
+                        padding: '14px 16px',
+                        textAlign: 'center',
+                        color: '#fff',
+                        fontSize: '12px',
+                        whiteSpace: 'nowrap',
+                        backgroundColor: '#1e3a5f',
+                        minWidth: '110px',
+                      }}
+                    >
+                      未視聴数
+                    </th>
                     {channelEpisodes.map((ep) => (
                       <th
                         key={ep.id}
@@ -759,9 +846,10 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {companyEmployees.map((emp, i) => {
+                  {displayedEmployees.map((emp, i) => {
                     const fullName = emp.last_name + ' ' + emp.first_name
                     const rowBg = i % 2 === 0 ? '#fff' : '#f8fafc'
+                    const unwatchedCount = getUnwatchedCount(emp)
 
                     return (
                       <tr
@@ -822,6 +910,29 @@ export default function AdminDashboardPage() {
                         >
                           {emp.affiliation || '-'}
                         </td>
+                        <td
+                          style={{
+                            padding: '12px 16px',
+                            textAlign: 'center',
+                            borderTop: '1px solid #e2e8f0',
+                            minWidth: '110px',
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              minWidth: '34px',
+                              padding: '4px 8px',
+                              borderRadius: '999px',
+                              backgroundColor: unwatchedCount > 0 ? '#fee2e2' : '#dcfce7',
+                              color: unwatchedCount > 0 ? '#b91c1c' : '#166534',
+                              fontSize: '12px',
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            {unwatchedCount}
+                          </span>
+                        </td>
                         {channelEpisodes.map((ep) => {
                           const log = getWatchLog(fullName, ep.id)
                           return (
@@ -869,6 +980,26 @@ export default function AdminDashboardPage() {
               </table>
             </div>
           </>
+        )}
+
+        {selectedChannelId && companyEmployees.length > 0 && displayedEmployees.length === 0 && (
+          <div
+            style={{
+              backgroundColor: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '40px',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ color: '#1e3a5f', fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
+              表示できる社員がいません
+            </div>
+            <p style={{ color: '#94a3b8', margin: 0, lineHeight: '1.7' }}>
+              今の条件では、未視聴がある社員が見つかりません。<br />
+              「未視聴がある社員だけ表示」を外すと、全員表示に戻せます。
+            </p>
+          </div>
         )}
 
         {selectedChannelId && companyEmployees.length === 0 && (
