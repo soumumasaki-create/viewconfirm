@@ -11,7 +11,13 @@ type Employee = {
   affiliation: string
 }
 type Episode = { id: number; title: string; channel_id: number; order_no: number }
-type Channel = { id: number; title: string }
+type Channel = {
+  id: number
+  title: string
+  target_scope?: string
+  target_companies?: string[]
+  target_affiliations?: string[]
+}
 type WatchLog = { user_name: string; episode_id: number; company_id: number; watched_at: string }
 
 const COMPANY_AFFILIATIONS: Record<string, string[]> = {
@@ -20,6 +26,47 @@ const COMPANY_AFFILIATIONS: Record<string, string[]> = {
   翠星: ['ドライバー', '事務職', '管理職'],
   山大運輸: ['ドライバー', '事務職', '管理職'],
   みらい: ['事務職', '管理職'],
+}
+
+function includesTargetValue(list: string[] | null | undefined, value: string) {
+  if (!list || list.length === 0) return false
+  return list.includes(value)
+}
+
+function canTargetEmployeeByChannel(channel: Channel | undefined, employee: Employee) {
+  if (!channel || !channel.target_scope || channel.target_scope === 'all') return true
+
+  const companies = channel.target_companies || []
+  const affiliations = channel.target_affiliations || []
+
+  const companyMatched =
+    companies.length === 0 || includesTargetValue(companies, employee.company)
+
+  const affiliationMatched =
+    affiliations.length === 0 || includesTargetValue(affiliations, employee.affiliation)
+
+  return companyMatched && affiliationMatched
+}
+
+function getChannelTargetSummary(channel: Channel | undefined) {
+  if (!channel || !channel.target_scope || channel.target_scope === 'all') {
+    return '全社員対象'
+  }
+
+  const companies = channel.target_companies || []
+  const affiliations = channel.target_affiliations || []
+
+  const parts: string[] = []
+
+  if (companies.length > 0) {
+    parts.push(`会社: ${companies.join(' / ')}`)
+  }
+
+  if (affiliations.length > 0) {
+    parts.push(`所属: ${affiliations.join(' / ')}`)
+  }
+
+  return parts.length > 0 ? parts.join('　|　') : '個別対象設定あり'
 }
 
 export default function AdminDashboardPage() {
@@ -38,7 +85,7 @@ export default function AdminDashboardPage() {
       if (co) setCompanies(co)
 
       const { data: ch } = await supabase.from('channels').select('*').order('id')
-      if (ch) setChannels(ch)
+      if (ch) setChannels(ch as Channel[])
 
       const { data: ep } = await supabase
         .from('episodes')
@@ -71,11 +118,15 @@ export default function AdminDashboardPage() {
     ? COMPANY_AFFILIATIONS[selectedCompany.name] || []
     : Array.from(new Set(Object.values(COMPANY_AFFILIATIONS).flat()))
 
-  const companyEmployees = employees.filter((e) => {
+  const filteredEmployees = employees.filter((e) => {
     const companyMatched = !selectedCompanyId || e.company === selectedCompany?.name
     const affiliationMatched = !selectedAffiliation || e.affiliation === selectedAffiliation
     return companyMatched && affiliationMatched
   })
+
+  const companyEmployees = selectedChannel
+    ? filteredEmployees.filter((e) => canTargetEmployeeByChannel(selectedChannel, e))
+    : filteredEmployees
 
   const getWatchLog = (userName: string, episodeId: number) => {
     return watchLogs.find((w) => w.user_name === userName && w.episode_id === episodeId)
@@ -340,6 +391,9 @@ export default function AdminDashboardPage() {
                 <div style={{ marginTop: '8px', fontSize: '13px', color: '#bfdbfe' }}>
                   対象社員 {companyEmployees.length}名
                 </div>
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#93c5fd', lineHeight: '1.7' }}>
+                  チャンネル対象設定：{getChannelTargetSummary(selectedChannel)}
+                </div>
               </div>
 
               <button
@@ -365,7 +419,7 @@ export default function AdminDashboardPage() {
                 対象社員の視聴状況
               </div>
               <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-                各動画の視聴済み人数と、社員ごとの視聴日時を確認できます。
+                チャンネルの対象設定に合う社員だけを表示しています。各動画の視聴済み人数と、社員ごとの視聴日時を確認できます。
               </p>
             </div>
 
@@ -527,7 +581,7 @@ export default function AdminDashboardPage() {
             }}
           >
             <p style={{ color: '#94a3b8', margin: 0 }}>
-              該当する社員が登録されていません
+              チャンネル対象設定と絞り込み条件に合う社員がいません
             </p>
           </div>
         )}
