@@ -485,6 +485,73 @@ export default function AdminDashboardPage() {
 
             <div style={{ marginBottom: '14px' }}>
               <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
+                動画ごとの進捗
+              </div>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
+                各動画ごとに、何名が視聴済みかを先に確認できます。
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '12px',
+                marginBottom: '18px',
+              }}
+            >
+              {channelEpisodes.map((ep) => {
+                const count = watchedCount(ep.id)
+                const total = companyEmployees.length
+                const rate = total === 0 ? 0 : Math.round((count / total) * 100)
+
+                return (
+                  <div
+                    key={ep.id}
+                    style={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    }}
+                  >
+                    <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
+                      #{ep.order_no}
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f', lineHeight: '1.6', marginBottom: '10px' }}>
+                      {ep.title}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#166534', fontWeight: 'bold', marginBottom: '8px' }}>
+                      {count}/{total}名 視聴済み
+                    </div>
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '8px',
+                        backgroundColor: '#e2e8f0',
+                        borderRadius: '999px',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${rate}%`,
+                          height: '100%',
+                          backgroundColor: '#16a34a',
+                        }}
+                      />
+                    </div>
+                    <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                      進捗 {rate}%
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
                 対象社員の視聴状況
               </div>
               <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
