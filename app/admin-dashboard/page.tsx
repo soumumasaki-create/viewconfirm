@@ -670,7 +670,7 @@ export default function AdminDashboardPage() {
                 対象社員の視聴状況
               </div>
               <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
-                チャンネルの対象設定に合う社員だけを表示しています。各動画の視聴済み人数と、社員ごとの視聴日時を確認できます。
+                横に長い表なので、左の「氏名・会社・所属」は固定しています。
               </p>
             </div>
 
@@ -683,7 +683,7 @@ export default function AdminDashboardPage() {
                 boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
               }}
             >
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: '980px' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#1e3a5f' }}>
                     <th
@@ -693,6 +693,12 @@ export default function AdminDashboardPage() {
                         color: '#fff',
                         fontSize: '13px',
                         whiteSpace: 'nowrap',
+                        position: 'sticky',
+                        left: 0,
+                        zIndex: 4,
+                        backgroundColor: '#1e3a5f',
+                        minWidth: '160px',
+                        boxShadow: '2px 0 0 #0f2742',
                       }}
                     >
                       氏名
@@ -704,6 +710,12 @@ export default function AdminDashboardPage() {
                         color: '#fff',
                         fontSize: '13px',
                         whiteSpace: 'nowrap',
+                        position: 'sticky',
+                        left: '160px',
+                        zIndex: 4,
+                        backgroundColor: '#1e3a5f',
+                        minWidth: '140px',
+                        boxShadow: '2px 0 0 #0f2742',
                       }}
                     >
                       会社
@@ -715,6 +727,12 @@ export default function AdminDashboardPage() {
                         color: '#fff',
                         fontSize: '13px',
                         whiteSpace: 'nowrap',
+                        position: 'sticky',
+                        left: '300px',
+                        zIndex: 4,
+                        backgroundColor: '#1e3a5f',
+                        minWidth: '140px',
+                        boxShadow: '2px 0 0 #0f2742',
                       }}
                     >
                       所属
@@ -728,6 +746,8 @@ export default function AdminDashboardPage() {
                           color: '#fff',
                           fontSize: '12px',
                           whiteSpace: 'nowrap',
+                          backgroundColor: '#1e3a5f',
+                          minWidth: '150px',
                         }}
                       >
                         #{ep.order_no} {ep.title}
@@ -741,12 +761,13 @@ export default function AdminDashboardPage() {
                 <tbody>
                   {companyEmployees.map((emp, i) => {
                     const fullName = emp.last_name + ' ' + emp.first_name
+                    const rowBg = i % 2 === 0 ? '#fff' : '#f8fafc'
+
                     return (
                       <tr
                         key={emp.id}
                         style={{
-                          backgroundColor: i % 2 === 0 ? '#fff' : '#f8fafc',
-                          borderTop: '1px solid #e2e8f0',
+                          backgroundColor: rowBg,
                         }}
                       >
                         <td
@@ -756,6 +777,13 @@ export default function AdminDashboardPage() {
                             fontSize: '14px',
                             fontWeight: '500',
                             whiteSpace: 'nowrap',
+                            position: 'sticky',
+                            left: 0,
+                            zIndex: 3,
+                            backgroundColor: rowBg,
+                            minWidth: '160px',
+                            borderTop: '1px solid #e2e8f0',
+                            boxShadow: '2px 0 0 #e2e8f0',
                           }}
                         >
                           {fullName}
@@ -766,6 +794,13 @@ export default function AdminDashboardPage() {
                             color: '#64748b',
                             fontSize: '13px',
                             whiteSpace: 'nowrap',
+                            position: 'sticky',
+                            left: '160px',
+                            zIndex: 3,
+                            backgroundColor: rowBg,
+                            minWidth: '140px',
+                            borderTop: '1px solid #e2e8f0',
+                            boxShadow: '2px 0 0 #e2e8f0',
                           }}
                         >
                           {emp.company}
@@ -776,6 +811,13 @@ export default function AdminDashboardPage() {
                             color: '#64748b',
                             fontSize: '13px',
                             whiteSpace: 'nowrap',
+                            position: 'sticky',
+                            left: '300px',
+                            zIndex: 3,
+                            backgroundColor: rowBg,
+                            minWidth: '140px',
+                            borderTop: '1px solid #e2e8f0',
+                            boxShadow: '2px 0 0 #e2e8f0',
                           }}
                         >
                           {emp.affiliation || '-'}
@@ -783,7 +825,15 @@ export default function AdminDashboardPage() {
                         {channelEpisodes.map((ep) => {
                           const log = getWatchLog(fullName, ep.id)
                           return (
-                            <td key={ep.id} style={{ padding: '12px 16px', textAlign: 'center' }}>
+                            <td
+                              key={ep.id}
+                              style={{
+                                padding: '12px 16px',
+                                textAlign: 'center',
+                                borderTop: '1px solid #e2e8f0',
+                                minWidth: '150px',
+                              }}
+                            >
                               {log ? (
                                 <div>
                                   <div
