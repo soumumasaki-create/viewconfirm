@@ -228,6 +228,7 @@ export default function AdminDashboardPage() {
   const totalPossibleViews = companyEmployees.length * channelEpisodes.length
   const totalCompletedViews = channelEpisodes.reduce((sum, ep) => sum + watchedCount(ep.id), 0)
   const overallRate = totalPossibleViews === 0 ? 0 : Math.round((totalCompletedViews / totalPossibleViews) * 100)
+  const remainingViews = totalPossibleViews - totalCompletedViews
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
@@ -493,7 +494,7 @@ export default function AdminDashboardPage() {
                 border: '1px solid #e2e8f0',
                 borderRadius: '12px',
                 padding: '18px 20px',
-                marginBottom: '18px',
+                marginBottom: '14px',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
               }}
             >
@@ -525,6 +526,75 @@ export default function AdminDashboardPage() {
               </div>
               <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b' }}>
                 全体進捗 {overallRate}%
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '12px',
+                marginBottom: '18px',
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                }}
+              >
+                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
+                  対象社員数
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e3a5f' }}>
+                  {companyEmployees.length}
+                </div>
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                  名
+                </div>
+              </div>
+
+              <div
+                style={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                }}
+              >
+                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
+                  視聴済み件数
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a' }}>
+                  {totalCompletedViews}
+                </div>
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                  件
+                </div>
+              </div>
+
+              <div
+                style={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                }}
+              >
+                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
+                  未視聴件数
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ef4444' }}>
+                  {remainingViews}
+                </div>
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                  件
+                </div>
               </div>
             </div>
 
