@@ -175,6 +175,56 @@ export default function AdminDashboardPage() {
       getWatchLog(emp.last_name + ' ' + emp.first_name, episodeId)
     ).length
 
+  const clearFilters = () => {
+    setSelectedCompanyId(null)
+    setSelectedAffiliation('')
+    setSelectedChannelId(null)
+  }
+
+  const renderConditionBadges = () => {
+    const badges = [
+      {
+        label: `会社: ${selectedCompany?.name || '全社員'}`,
+        bg: '#dbeafe',
+        color: '#1d4ed8',
+      },
+      {
+        label: `所属: ${selectedAffiliation || '全所属'}`,
+        bg: '#fef3c7',
+        color: '#b45309',
+      },
+    ]
+
+    if (selectedChannel) {
+      badges.push({
+        label: `チャンネル: ${selectedChannel.title}`,
+        bg: '#dcfce7',
+        color: '#166534',
+      })
+    }
+
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '14px' }}>
+        {badges.map((badge) => (
+          <span
+            key={badge.label}
+            style={{
+              display: 'inline-block',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              padding: '6px 10px',
+              borderRadius: '999px',
+              backgroundColor: badge.bg,
+              color: badge.color,
+            }}
+          >
+            {badge.label}
+          </span>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
       <header
@@ -243,6 +293,7 @@ export default function AdminDashboardPage() {
             <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
               会社・所属・チャンネルを選ぶと、対象社員の視聴状況を下に表示します。
             </p>
+            {renderConditionBadges()}
           </div>
 
           <div
@@ -354,6 +405,24 @@ export default function AdminDashboardPage() {
               </select>
             </div>
           </div>
+
+          <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              onClick={clearFilters}
+              style={{
+                padding: '10px 16px',
+                backgroundColor: '#f1f5f9',
+                color: '#475569',
+                border: '1px solid #cbd5e1',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+              }}
+            >
+              条件をクリア
+            </button>
+          </div>
         </div>
 
         {selectedChannelId && companyEmployees.length > 0 && (
@@ -418,7 +487,7 @@ export default function AdminDashboardPage() {
               <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
                 対象社員の視聴状況
               </div>
-              <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
                 チャンネルの対象設定に合う社員だけを表示しています。各動画の視聴済み人数と、社員ごとの視聴日時を確認できます。
               </p>
             </div>
@@ -580,8 +649,12 @@ export default function AdminDashboardPage() {
               textAlign: 'center',
             }}
           >
-            <p style={{ color: '#94a3b8', margin: 0 }}>
-              チャンネル対象設定と絞り込み条件に合う社員がいません
+            <div style={{ color: '#1e3a5f', fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
+              対象社員が見つかりません
+            </div>
+            <p style={{ color: '#94a3b8', margin: 0, lineHeight: '1.7' }}>
+              チャンネル対象設定と、今の絞り込み条件に合う社員がいません。<br />
+              会社・所属・チャンネルの組み合わせを見直してください。
             </p>
           </div>
         )}
@@ -590,16 +663,21 @@ export default function AdminDashboardPage() {
           <div
             style={{
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               padding: '60px',
               backgroundColor: '#fff',
               border: '1px solid #e2e8f0',
               borderRadius: '12px',
+              textAlign: 'center',
             }}
           >
-            <p style={{ color: '#94a3b8', fontSize: '16px', margin: 0 }}>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '8px' }}>
               チャンネルを選択してください
+            </div>
+            <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0, lineHeight: '1.7' }}>
+              上の絞り込み条件からチャンネルを選ぶと、視聴状況を表示します。
             </p>
           </div>
         )}
