@@ -78,7 +78,7 @@ export default function AdminDashboardPage() {
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null)
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null)
   const [selectedAffiliation, setSelectedAffiliation] = useState('')
-  const [showOnlyUnwatched, setShowOnlyUnwatched] = useState(false)
+  const [displayMode, setDisplayMode] = useState<'all' | 'unwatched' | 'watched'>('all')
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -140,17 +140,36 @@ export default function AdminDashboardPage() {
     return channelEpisodes.filter((ep) => !getWatchLog(fullName, ep.id)).length
   }
 
+  const getWatchedCountByEmployee = (emp: Employee) => {
+    if (channelEpisodes.length === 0) return 0
+
+    const fullName = emp.last_name + ' ' + emp.first_name
+    return channelEpisodes.filter((ep) => getWatchLog(fullName, ep.id)).length
+  }
+
   const hasUnwatchedEpisode = (emp: Employee) => {
     return getUnwatchedCount(emp) > 0
   }
 
-  const displayedEmployeesBase = showOnlyUnwatched
-    ? companyEmployees.filter((emp) => hasUnwatchedEpisode(emp))
-    : companyEmployees
+  const isFullyWatchedEmployee = (emp: Employee) => {
+    return channelEpisodes.length > 0 && getUnwatchedCount(emp) === 0
+  }
+
+  const displayedEmployeesBase =
+    displayMode === 'unwatched'
+      ? companyEmployees.filter((emp) => hasUnwatchedEpisode(emp))
+      : displayMode === 'watched'
+        ? companyEmployees.filter((emp) => isFullyWatchedEmployee(emp))
+        : companyEmployees
 
   const displayedEmployees = [...displayedEmployeesBase].sort((a, b) => {
-    const diff = getUnwatchedCount(b) - getUnwatchedCount(a)
-    if (diff !== 0) return diff
+    if (displayMode === 'watched') {
+      const watchedDiff = getWatchedCountByEmployee(b) - getWatchedCountByEmployee(a)
+      if (watchedDiff !== 0) return watchedDiff
+    } else {
+      const diff = getUnwatchedCount(b) - getUnwatchedCount(a)
+      if (diff !== 0) return diff
+    }
 
     const companyDiff = a.company.localeCompare(b.company, 'ja')
     if (companyDiff !== 0) return companyDiff
@@ -198,7 +217,7 @@ export default function AdminDashboardPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `視聴状況_${selectedChannel?.title || ''}_${selectedCompany?.name || '全社'}_${selectedAffiliation || '全所属'}_${showOnlyUnwatched ? '未視聴ありのみ' : '全件'}.csv`
+    a.download = `視聴状況_${selectedChannel?.title || ''}_${selectedCompany?.name || '全社'}_${selectedAffiliation || '全所属'}_${displayMode === 'unwatched' ? '未視聴ありのみ' : displayMode === 'watched' ? '視聴済みのみ' : '全件'}.csv`
     a.click()
   }
 
@@ -211,7 +230,13 @@ export default function AdminDashboardPage() {
     setSelectedCompanyId(null)
     setSelectedAffiliation('')
     setSelectedChannelId(null)
-    setShowOnlyUnwatched(false)
+    setDisplayMode('all')
+  }
+
+  const getDisplayModeLabel = () => {
+    if (displayMode === 'unwatched') return '未視聴ありのみ'
+    if (displayMode === 'watched') return '視聴済みのみ'
+    return '全員表示'
   }
 
   const renderConditionBadges = () => {
@@ -227,7 +252,7 @@ export default function AdminDashboardPage() {
         color: '#b45309',
       },
       {
-        label: `表示: ${showOnlyUnwatched ? '未視聴ありのみ' : '全員表示'}`,
+        label: `表示: ${getDisplayModeLabel()}`,
         bg: '#fee2e2',
         color: '#b91c1c',
       },
@@ -460,23 +485,40 @@ export default function AdminDashboardPage() {
               flexWrap: 'wrap',
             }}
           >
-            <label
+            <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                fontSize: '14px',
-                color: '#334155',
-                fontWeight: '600',
+                gap: '10px',
+                flexWrap: 'wrap',
               }}
             >
-              <input
-                type="checkbox"
-                checked={showOnlyUnwatched}
-                onChange={(e) => setShowOnlyUnwatched(e.target.checked)}
-              />
-              未視聴がある社員だけ表示
-            </label>
+              <label
+                style={{
+                  fontSize: '14px',
+                  color: '#334155',
+                  fontWeight: '600',
+                }}
+              >
+                表示条件
+              </label>
+              <select
+                value={displayMode}
+                onChange={(e) => setDisplayMode(e.target.value as 'all' | 'unwatched' | 'watched')}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '14px',
+                  color: '#0f172a',
+                  backgroundColor: '#f8fafc',
+                }}
+              >
+                <option value="all">全員表示</option>
+                <option value="unwatched">未視聴がある社員だけ表示</option>
+                <option value="watched">視聴済みの社員だけ表示</option>
+              </select>
+            </div>
 
             <button
               onClick={clearFilters}
@@ -744,7 +786,9 @@ export default function AdminDashboardPage() {
                 対象社員の視聴状況
               </div>
               <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
-                未視聴が多い社員から上に表示しています。横に長い表なので、左の「氏名・会社・所属」は固定しています。
+                {displayMode === 'watched'
+                  ? '視聴済みの社員だけを表示しています。横に長い表なので、左の「氏名・会社・所属」は固定しています。'
+                  : '未視聴が多い社員から上に表示しています。横に長い表なので、左の「氏名・会社・所属」は固定しています。'}
               </p>
             </div>
 
@@ -996,8 +1040,11 @@ export default function AdminDashboardPage() {
               表示できる社員がいません
             </div>
             <p style={{ color: '#94a3b8', margin: 0, lineHeight: '1.7' }}>
-              今の条件では、未視聴がある社員が見つかりません。<br />
-              「未視聴がある社員だけ表示」を外すと、全員表示に戻せます。
+              {displayMode === 'watched'
+                ? '今の条件では、視聴済みの社員が見つかりません。表示条件を「全員表示」に戻すと確認しやすいです。'
+                : displayMode === 'unwatched'
+                  ? '今の条件では、未視聴がある社員が見つかりません。「全員表示」に戻すと全体を確認できます。'
+                  : '今の条件では表示できる社員がいません。条件を見直してください。'}
             </p>
           </div>
         )}
