@@ -79,6 +79,9 @@ export default function AdminDashboardPage() {
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null)
   const [selectedAffiliation, setSelectedAffiliation] = useState('')
   const [displayMode, setDisplayMode] = useState<'all' | 'unwatched' | 'watched'>('all')
+  const [sortMode, setSortMode] = useState<'unwatched_desc' | 'name_asc' | 'company_affiliation_name'>(
+    'unwatched_desc'
+  )
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -163,12 +166,29 @@ export default function AdminDashboardPage() {
         : companyEmployees
 
   const displayedEmployees = [...displayedEmployeesBase].sort((a, b) => {
+    const aName = `${a.last_name} ${a.first_name}`
+    const bName = `${b.last_name} ${b.first_name}`
+
+    if (sortMode === 'name_asc') {
+      return aName.localeCompare(bName, 'ja')
+    }
+
+    if (sortMode === 'company_affiliation_name') {
+      const companyDiff = a.company.localeCompare(b.company, 'ja')
+      if (companyDiff !== 0) return companyDiff
+
+      const affiliationDiff = (a.affiliation || '').localeCompare(b.affiliation || '', 'ja')
+      if (affiliationDiff !== 0) return affiliationDiff
+
+      return aName.localeCompare(bName, 'ja')
+    }
+
     if (displayMode === 'watched') {
       const watchedDiff = getWatchedCountByEmployee(b) - getWatchedCountByEmployee(a)
       if (watchedDiff !== 0) return watchedDiff
     } else {
-      const diff = getUnwatchedCount(b) - getUnwatchedCount(a)
-      if (diff !== 0) return diff
+      const unwatchedDiff = getUnwatchedCount(b) - getUnwatchedCount(a)
+      if (unwatchedDiff !== 0) return unwatchedDiff
     }
 
     const companyDiff = a.company.localeCompare(b.company, 'ja')
@@ -177,8 +197,6 @@ export default function AdminDashboardPage() {
     const affiliationDiff = (a.affiliation || '').localeCompare(b.affiliation || '', 'ja')
     if (affiliationDiff !== 0) return affiliationDiff
 
-    const aName = `${a.last_name} ${a.first_name}`
-    const bName = `${b.last_name} ${b.first_name}`
     return aName.localeCompare(bName, 'ja')
   })
 
@@ -189,6 +207,12 @@ export default function AdminDashboardPage() {
     ).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(
       d.getMinutes()
     ).padStart(2, '0')}`
+  }
+
+  const getSortModeLabel = () => {
+    if (sortMode === 'name_asc') return '氏名順'
+    if (sortMode === 'company_affiliation_name') return '会社・所属・氏名順'
+    return displayMode === 'watched' ? '視聴済み数が多い順' : '未視聴数が多い順'
   }
 
   const handleCSV = () => {
@@ -217,7 +241,7 @@ export default function AdminDashboardPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `視聴状況_${selectedChannel?.title || ''}_${selectedCompany?.name || '全社'}_${selectedAffiliation || '全所属'}_${displayMode === 'unwatched' ? '未視聴ありのみ' : displayMode === 'watched' ? '視聴済みのみ' : '全件'}.csv`
+    a.download = `視聴状況_${selectedChannel?.title || ''}_${selectedCompany?.name || '全社'}_${selectedAffiliation || '全所属'}_${displayMode === 'unwatched' ? '未視聴ありのみ' : displayMode === 'watched' ? '視聴済みのみ' : '全件'}_${sortMode}.csv`
     a.click()
   }
 
@@ -231,6 +255,7 @@ export default function AdminDashboardPage() {
     setSelectedAffiliation('')
     setSelectedChannelId(null)
     setDisplayMode('all')
+    setSortMode('unwatched_desc')
   }
 
   const getDisplayModeLabel = () => {
@@ -255,6 +280,11 @@ export default function AdminDashboardPage() {
         label: `表示: ${getDisplayModeLabel()}`,
         bg: '#fee2e2',
         color: '#b91c1c',
+      },
+      {
+        label: `並び順: ${getSortModeLabel()}`,
+        bg: '#ede9fe',
+        color: '#6d28d9',
       },
     ]
 
@@ -478,26 +508,20 @@ export default function AdminDashboardPage() {
           <div
             style={{
               marginTop: '16px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr auto',
               gap: '12px',
-              flexWrap: 'wrap',
+              alignItems: 'end',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                flexWrap: 'wrap',
-              }}
-            >
+            <div>
               <label
                 style={{
                   fontSize: '14px',
                   color: '#334155',
                   fontWeight: '600',
+                  display: 'block',
+                  marginBottom: '6px',
                 }}
               >
                 表示条件
@@ -506,6 +530,7 @@ export default function AdminDashboardPage() {
                 value={displayMode}
                 onChange={(e) => setDisplayMode(e.target.value as 'all' | 'unwatched' | 'watched')}
                 style={{
+                  width: '100%',
                   padding: '10px 12px',
                   borderRadius: '10px',
                   border: '1px solid #cbd5e1',
@@ -520,6 +545,46 @@ export default function AdminDashboardPage() {
               </select>
             </div>
 
+            <div>
+              <label
+                style={{
+                  fontSize: '14px',
+                  color: '#334155',
+                  fontWeight: '600',
+                  display: 'block',
+                  marginBottom: '6px',
+                }}
+              >
+                並び順
+              </label>
+              <select
+                value={sortMode}
+                onChange={(e) =>
+                  setSortMode(
+                    e.target.value as
+                      | 'unwatched_desc'
+                      | 'name_asc'
+                      | 'company_affiliation_name'
+                  )
+                }
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '14px',
+                  color: '#0f172a',
+                  backgroundColor: '#f8fafc',
+                }}
+              >
+                <option value="unwatched_desc">
+                  {displayMode === 'watched' ? '視聴済み数が多い順' : '未視聴数が多い順'}
+                </option>
+                <option value="name_asc">氏名順</option>
+                <option value="company_affiliation_name">会社・所属・氏名順</option>
+              </select>
+            </div>
+
             <button
               onClick={clearFilters}
               style={{
@@ -531,6 +596,7 @@ export default function AdminDashboardPage() {
                 cursor: 'pointer',
                 fontSize: '14px',
                 fontWeight: 'bold',
+                height: '42px',
               }}
             >
               条件をクリア
@@ -787,8 +853,8 @@ export default function AdminDashboardPage() {
               </div>
               <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
                 {displayMode === 'watched'
-                  ? '視聴済みの社員だけを表示しています。横に長い表なので、左の「氏名・会社・所属」は固定しています。'
-                  : '未視聴が多い社員から上に表示しています。横に長い表なので、左の「氏名・会社・所属」は固定しています。'}
+                  ? '視聴済みの社員だけを表示しています。並び順も上の条件から切り替えできます。横に長い表なので、左の「氏名・会社・所属」は固定しています。'
+                  : '並び順は上の条件から切り替えできます。横に長い表なので、左の「氏名・会社・所属」は固定しています。'}
               </p>
             </div>
 
