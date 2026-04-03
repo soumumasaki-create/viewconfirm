@@ -9,8 +9,7 @@ const supabaseAdmin = createClient(
 export async function POST(req: Request) {
   const { email, password, name, company } = await req.json()
 
-  // Supabase Authにユーザー作成
-  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+  const { error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
@@ -20,10 +19,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: authError.message }, { status: 400 })
   }
 
-  // adminsテーブルに登録
   const { error: dbError } = await supabaseAdmin
     .from('admins')
-    .insert({ email, name, company })
+    .insert({
+      email,
+      name,
+      company,
+      can_view_all_companies: false,
+      can_view_own_company: false,
+      can_download_csv: false,
+      can_manage_admin_permissions: false,
+      can_reset_password: false,
+      can_unlock_account: false,
+      can_receive_security_mail: false,
+    })
 
   if (dbError) {
     return NextResponse.json({ error: dbError.message }, { status: 400 })
