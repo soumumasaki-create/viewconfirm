@@ -267,7 +267,7 @@ export default function AdminUsersPage() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1280px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1380px' }}>
             <thead>
               <tr style={{ backgroundColor: '#1e3a5f' }}>
                 <th style={{ padding: '14px 16px', textAlign: 'left', color: '#fff', fontSize: '13px' }}>氏名</th>
@@ -369,24 +369,48 @@ export default function AdminUsersPage() {
                   </td>
 
                   <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                    {admin.email !== currentEmail ? (
-                      <button
-                        onClick={() => handleDelete(admin.id, admin.email)}
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <a
+                        href={`/admin-users/${admin.id}/permissions`}
                         style={{
+                          display: 'inline-block',
                           padding: '6px 14px',
-                          backgroundColor: '#ef4444',
+                          backgroundColor: '#2563eb',
                           color: '#fff',
-                          border: 'none',
+                          textDecoration: 'none',
                           borderRadius: '6px',
-                          cursor: 'pointer',
                           fontSize: '13px',
                         }}
                       >
-                        削除
-                      </button>
-                    ) : (
-                      <span style={{ fontSize: '13px', color: '#94a3b8' }}>-</span>
-                    )}
+                        権限変更
+                      </a>
+
+                      {admin.email !== currentEmail ? (
+                        <button
+                          onClick={() => handleDelete(admin.id, admin.email)}
+                          style={{
+                            padding: '6px 14px',
+                            backgroundColor: '#ef4444',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                          }}
+                        >
+                          削除
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '13px', color: '#94a3b8', padding: '6px 0' }}>-</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
