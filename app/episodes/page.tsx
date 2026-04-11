@@ -17,6 +17,9 @@ type Episode = {
   target_scope: string
   target_companies: string[]
   target_affiliations: string[]
+  content_type: string
+  completion_seconds: number
+  require_manual_check: boolean
 }
 
 const ALL_COMPANIES = ['高見起業', 'タイホー荷役', '翠星', '山大運輸', 'みらい']
@@ -61,9 +64,19 @@ function normalizeVideoUrl(url: string) {
   }
 }
 
+function formatSeconds(totalSeconds: number) {
+  const safe = Number.isFinite(totalSeconds) ? Math.max(0, totalSeconds) : 0
+  const minutes = Math.floor(safe / 60)
+  const seconds = safe % 60
+  return `${minutes}分${String(seconds).padStart(2, '0')}秒`
+}
+
 export default function EpisodesPage() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [episodes, setEpisodes] = useState<Episode[]>([])
+
+  const [editingId, setEditingId] = useState<number | null>(null)
+
   const [channelId, setChannelId] = useState('')
   const [title, setTitle] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
@@ -71,13 +84,21 @@ export default function EpisodesPage() {
   const [targetScope, setTargetScope] = useState('channel')
   const [targetCompanies, setTargetCompanies] = useState<string[]>([])
   const [targetAffiliations, setTargetAffiliations] = useState<string[]>([])
+  const [contentType, setContentType] = useState('video')
+  const [completionMinutes, setCompletionMinutes] = useState('3')
+  const [completionSeconds, setCompletionSeconds] = useState('0')
+  const [requireManualCheck, setRequireManualCheck] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const fetchAll = async () => {
     const { data: ch } = await supabase.from('channels').select('*').order('id')
-    if (ch) setChannels(ch)
+    if (ch) setChannels(ch as Channel[])
 
-    const { data: ep } = await supabase.from('episodes').select('*').order('order_no')
+    const { data: ep } = await supabase
+      .from('episodes')
+      .select('*')
+      .order('channel_id')
+      .order('order_no')
     if (ep) setEpisodes(ep as Episode[])
   }
 
@@ -109,6 +130,15 @@ export default function EpisodesPage() {
     }
   }, [targetCompanies, targetScope, availableAffiliations])
 
+  useEffect(() => {
+    if (contentType === 'video') {
+      setRequireManualCheck(false)
+    } else {
+      setCompletionMinutes('0')
+      setCompletionSeconds('0')
+    }
+  }, [contentType])
+
   const toggleCompany = (value: string) => {
     setTargetCompanies((prev) =>
       prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
@@ -121,14 +151,36 @@ export default function EpisodesPage() {
     )
   }
 
-  const handleCreate = async () => {
+  const resetForm = () => {
+    setEditingId(null)
+    setChannelId('')
+    setTitle('')
+    setVideoUrl('')
+    setOrderNo('')
+    setTargetScope('channel')
+    setTargetCompanies([])
+    setTargetAffiliations([])
+    setContentType('video')
+    setCompletionMinutes('3')
+    setCompletionSeconds('0')
+    setRequireManualCheck(false)
+  }
+
+  const handleCreateOrUpdate = async () => {
     if (!title || !channelId || !orderNo) return
+    if (!videoUrl) return
     if (targetScope === 'custom' && targetCompanies.length === 0) return
     if (targetScope === 'custom' && targetAffiliations.length === 0) return
 
+    const minutes = Number(completionMinutes || '0')
+    const seconds = Number(completionSeconds || '0')
+    const totalSeconds = minutes * 60 + seconds
+
+    if (contentType === 'video' && totalSeconds <= 0) return
+
     setLoading(true)
 
-    await supabase.from('episodes').insert({
+    const payload = {
       title,
       video_url: normalizeVideoUrl(videoUrl),
       channel_id: Number(channelId),
@@ -136,17 +188,79 @@ export default function EpisodesPage() {
       target_scope: targetScope,
       target_companies: targetScope === 'channel' ? [] : targetCompanies,
       target_affiliations: targetScope === 'channel' ? [] : targetAffiliations,
-    })
+      content_type: contentType,
+      completion_seconds: contentType === 'video' ? totalSeconds : 0,
+      require_manual_check: contentType === 'video' ? false : requireManualCheck,
+    }
 
-    setTitle('')
-    setVideoUrl('')
-    setOrderNo('')
-    setTargetScope('channel')
-    setTargetCompanies([])
-    setTargetAffiliations([])
+    if (editingId) {
+      await supabase.from('episodes').update(payload).eq('id', editingId)
+    } else {
+      await supabase.from('episodes').insert(payload)
+    }
 
+    resetForm()
     await fetchAll()
     setLoading(false)
+  }
+
+  const handleEdit = (ep: Episode) => {
+    setEditingId(ep.id)
+    setChannelId(String(ep.channel_id))
+    setTitle(ep.title || '')
+    setVideoUrl(ep.video_url || '')
+    setOrderNo(String(ep.order_no ?? ''))
+    setTargetScope(ep.target_scope || 'channel')
+    setTargetCompanies(ep.target_scope === 'channel' ? [] : ep.target_companies || [])
+    setTargetAffiliations(ep.target_scope === 'channel' ? [] : ep.target_affiliations || [])
+    setContentType(ep.content_type || 'video')
+
+    if ((ep.content_type || 'video') === 'video') {
+      const total = ep.completion_seconds || 180
+      const minutes = Math.floor(total / 60)
+      const seconds = total % 60
+      setCompletionMinutes(String(minutes))
+      setCompletionSeconds(String(seconds))
+      setRequireManualCheck(false)
+    } else {
+      setCompletionMinutes('0')
+      setCompletionSeconds('0')
+      setRequireManualCheck(!!ep.require_manual_check)
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleDelete = async (ep: Episode) => {
+    const ok = window.confirm(`「${ep.title}」を削除します。よろしいですか？`)
+    if (!ok) return
+
+    await supabase.from('episodes').delete().eq('id', ep.id)
+
+    if (editingId === ep.id) {
+      resetForm()
+    }
+
+    await fetchAll()
+  }
+
+  const handleMove = async (ep: Episode, direction: 'up' | 'down') => {
+    const sameChannelEpisodes = episodes
+      .filter((item) => item.channel_id === ep.channel_id)
+      .sort((a, b) => a.order_no - b.order_no)
+
+    const currentIndex = sameChannelEpisodes.findIndex((item) => item.id === ep.id)
+    if (currentIndex === -1) return
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= sameChannelEpisodes.length) return
+
+    const targetEpisode = sameChannelEpisodes[targetIndex]
+
+    await supabase.from('episodes').update({ order_no: targetEpisode.order_no }).eq('id', ep.id)
+    await supabase.from('episodes').update({ order_no: ep.order_no }).eq('id', targetEpisode.id)
+
+    await fetchAll()
   }
 
   const getTargetBadges = (ep: Episode) => {
@@ -315,7 +429,7 @@ export default function EpisodesPage() {
           }}
         >
           <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '20px' }}>
-            新しい動画を追加
+            {editingId ? '動画・資料を編集' : '新しい動画を追加'}
           </h2>
 
           <div
@@ -397,10 +511,10 @@ export default function EpisodesPage() {
                 display: 'block',
               }}
             >
-              動画タイトル
+              タイトル
             </label>
             <input
-              placeholder="動画タイトルを入力"
+              placeholder="タイトルを入力"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               style={{
@@ -425,10 +539,40 @@ export default function EpisodesPage() {
                 display: 'block',
               }}
             >
-              動画URL
+              種別
+            </label>
+            <select
+              value={contentType}
+              onChange={(e) => setContentType(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '15px',
+                color: '#0f172a',
+                backgroundColor: '#f8fafc',
+                boxSizing: 'border-box',
+              }}
+            >
+              <option value="video">動画</option>
+              <option value="document">資料</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label
+              style={{
+                fontSize: '13px',
+                color: '#475569',
+                marginBottom: '6px',
+                display: 'block',
+              }}
+            >
+              URL
             </label>
             <input
-              placeholder="YouTube通常URL / YouTube短縮URL / GoogleドライブURL"
+              placeholder="YouTube / PDF / Word / Excel / Googleドライブ などのURL"
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
               style={{
@@ -443,6 +587,90 @@ export default function EpisodesPage() {
               }}
             />
           </div>
+
+          {contentType === 'video' ? (
+            <div style={{ marginBottom: '16px' }}>
+              <label
+                style={{
+                  fontSize: '13px',
+                  color: '#475569',
+                  marginBottom: '6px',
+                  display: 'block',
+                }}
+              >
+                視聴完了までの時間
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <input
+                    placeholder="分"
+                    value={completionMinutes}
+                    onChange={(e) => setCompletionMinutes(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '15px',
+                      color: '#0f172a',
+                      backgroundColor: '#f8fafc',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <input
+                    placeholder="秒"
+                    value={completionSeconds}
+                    onChange={(e) => setCompletionSeconds(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '15px',
+                      color: '#0f172a',
+                      backgroundColor: '#f8fafc',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+              <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b' }}>
+                例：0分30秒、2分00秒、12分15秒
+              </div>
+            </div>
+          ) : (
+            <div
+              style={{
+                marginBottom: '16px',
+                padding: '14px 16px',
+                borderRadius: '10px',
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  fontSize: '14px',
+                  color: '#334155',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={requireManualCheck}
+                  onChange={(e) => setRequireManualCheck(e.target.checked)}
+                />
+                閲覧チェックで完了にする
+              </label>
+              <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b', lineHeight: 1.7 }}>
+                PDF、Word、Excelなどの資料は、時間ではなく閲覧チェックで完了にできます。
+              </div>
+            </div>
+          )}
 
           <div style={{ marginBottom: '16px' }}>
             <label
@@ -565,42 +793,66 @@ export default function EpisodesPage() {
             </div>
           )}
 
-          <button
-            onClick={handleCreate}
-            disabled={loading}
-            style={{
-              padding: '10px 28px',
-              backgroundColor: '#1e3a5f',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '15px',
-              fontWeight: 'bold',
-            }}
-          >
-            {loading ? '追加中...' : '追加する'}
-          </button>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              onClick={handleCreateOrUpdate}
+              disabled={loading}
+              style={{
+                padding: '10px 28px',
+                backgroundColor: '#1e3a5f',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '15px',
+                fontWeight: 'bold',
+              }}
+            >
+              {loading ? (editingId ? '保存中...' : '追加中...') : editingId ? '保存する' : '追加する'}
+            </button>
+
+            {editingId && (
+              <button
+                onClick={resetForm}
+                type="button"
+                style={{
+                  padding: '10px 28px',
+                  backgroundColor: '#e2e8f0',
+                  color: '#334155',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                  fontWeight: 'bold',
+                }}
+              >
+                編集をやめる
+              </button>
+            )}
+          </div>
         </div>
 
         <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '16px' }}>
           動画一覧
         </h2>
 
-        {channels.map((ch) => (
-          <div key={ch.id} style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <div style={{ width: '4px', height: '20px', backgroundColor: '#2563eb', borderRadius: '2px' }} />
-              <h3 style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{ch.title}</h3>
-            </div>
+        {channels.map((ch) => {
+          const channelEpisodes = episodes
+            .filter((ep) => ep.channel_id === ch.id)
+            .sort((a, b) => a.order_no - b.order_no)
 
-            {episodes.filter((ep) => ep.channel_id === ch.id).length === 0 && (
-              <p style={{ color: '#94a3b8', fontSize: '14px', paddingLeft: '12px' }}>動画がありません</p>
-            )}
+          return (
+            <div key={ch.id} style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <div style={{ width: '4px', height: '20px', backgroundColor: '#2563eb', borderRadius: '2px' }} />
+                <h3 style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{ch.title}</h3>
+              </div>
 
-            {episodes
-              .filter((ep) => ep.channel_id === ch.id)
-              .map((ep) => (
+              {channelEpisodes.length === 0 && (
+                <p style={{ color: '#94a3b8', fontSize: '14px', paddingLeft: '12px' }}>動画がありません</p>
+              )}
+
+              {channelEpisodes.map((ep, index) => (
                 <div
                   key={ep.id}
                   style={{
@@ -612,7 +864,7 @@ export default function EpisodesPage() {
                     boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px', flexWrap: 'wrap' }}>
                     <span
                       style={{
                         fontSize: '12px',
@@ -628,19 +880,66 @@ export default function EpisodesPage() {
 
                     <span style={{ fontSize: '15px', color: '#1e3a5f', fontWeight: '500' }}>{ep.title}</span>
 
+                    <span
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        padding: '4px 10px',
+                        borderRadius: '999px',
+                        backgroundColor: ep.content_type === 'document' ? '#fef3c7' : '#dcfce7',
+                        color: ep.content_type === 'document' ? '#b45309' : '#166534',
+                      }}
+                    >
+                      {ep.content_type === 'document' ? '資料' : '動画'}
+                    </span>
+
                     {ep.video_url && (
                       <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: 'auto' }}>登録済み</span>
                     )}
                   </div>
 
-                  <div style={{ paddingLeft: '44px' }}>
+                  <div style={{ paddingLeft: '44px', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {ep.content_type === 'document' ? (
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            padding: '5px 10px',
+                            borderRadius: '999px',
+                            backgroundColor: ep.require_manual_check ? '#dbeafe' : '#e2e8f0',
+                            color: ep.require_manual_check ? '#1d4ed8' : '#475569',
+                          }}
+                        >
+                          {ep.require_manual_check ? '閲覧チェックで完了' : '資料'}
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            padding: '5px 10px',
+                            borderRadius: '999px',
+                            backgroundColor: '#ede9fe',
+                            color: '#6d28d9',
+                          }}
+                        >
+                          視聴完了: {formatSeconds(ep.completion_seconds || 0)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ paddingLeft: '44px', marginBottom: '12px' }}>
                     <div style={{ color: '#475569', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
                       誰向けか
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {getTargetBadges(ep).map((badge, index) => (
+                      {getTargetBadges(ep).map((badge, badgeIndex) => (
                         <span
-                          key={`${ep.id}-${badge.label}-${index}`}
+                          key={`${ep.id}-${badge.label}-${badgeIndex}`}
                           style={{
                             display: 'inline-block',
                             fontSize: '12px',
@@ -656,10 +955,79 @@ export default function EpisodesPage() {
                       ))}
                     </div>
                   </div>
+
+                  <div style={{ paddingLeft: '44px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => handleEdit(ep)}
+                      style={{
+                        padding: '8px 14px',
+                        backgroundColor: '#1d4ed8',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      編集
+                    </button>
+
+                    <button
+                      onClick={() => handleDelete(ep)}
+                      style={{
+                        padding: '8px 14px',
+                        backgroundColor: '#dc2626',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      削除
+                    </button>
+
+                    <button
+                      onClick={() => handleMove(ep, 'up')}
+                      disabled={index === 0}
+                      style={{
+                        padding: '8px 14px',
+                        backgroundColor: index === 0 ? '#cbd5e1' : '#0f766e',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: index === 0 ? 'not-allowed' : 'pointer',
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      ↑ 上へ
+                    </button>
+
+                    <button
+                      onClick={() => handleMove(ep, 'down')}
+                      disabled={index === channelEpisodes.length - 1}
+                      style={{
+                        padding: '8px 14px',
+                        backgroundColor: index === channelEpisodes.length - 1 ? '#cbd5e1' : '#0f766e',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: index === channelEpisodes.length - 1 ? 'not-allowed' : 'pointer',
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      ↓ 下へ
+                    </button>
+                  </div>
                 </div>
               ))}
-          </div>
-        ))}
+            </div>
+          )
+        })}
       </main>
     </div>
   )
