@@ -22,6 +22,9 @@ type Episode = {
   target_scope: string
   target_companies: string[]
   target_affiliations: string[]
+  content_type: string
+  completion_seconds: number
+  require_manual_check: boolean
 }
 
 type NamePair = {
@@ -38,8 +41,6 @@ type WatchLog = {
   episode_id: number
   user_name: string
 }
-
-const WAIT_SECONDS = 180
 
 function getYouTubeEmbedUrl(url: string): string | null {
   try {
@@ -141,6 +142,13 @@ function canViewChannel(
   return companyMatched && affiliationMatched
 }
 
+function formatSeconds(totalSeconds: number) {
+  const safe = Number.isFinite(totalSeconds) ? Math.max(0, totalSeconds) : 0
+  const minutes = Math.floor(safe / 60)
+  const seconds = safe % 60
+  return `${minutes}分${String(seconds).padStart(2, '0')}秒`
+}
+
 export default function WatchPage() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [episodes, setEpisodes] = useState<Episode[]>([])
@@ -165,6 +173,7 @@ export default function WatchPage() {
   const [canComplete, setCanComplete] = useState(false)
   const [employeeCompany, setEmployeeCompany] = useState('')
   const [employeeAffiliation, setEmployeeAffiliation] = useState('')
+  const [completionMessage, setCompletionMessage] = useState('')
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -236,6 +245,7 @@ export default function WatchPage() {
   const handleSelectEpisode = (ep: Episode) => {
     setSelectedEpisode(ep)
     setWatched(false)
+    setCompletionMessage('')
 
     if (timerRef.current) clearInterval(timerRef.current)
 
@@ -244,14 +254,25 @@ export default function WatchPage() {
       return
     }
 
-    setCanComplete(false)
+    if (ep.content_type === 'document') {
+      setCanComplete(!!ep.require_manual_check)
+      return
+    }
 
-    let remaining = WAIT_SECONDS
+    const waitSeconds = ep.completion_seconds && ep.completion_seconds > 0
+      ? ep.completion_seconds
+      : 180
+
+    setCanComplete(false)
+    setCompletionMessage(`初回視聴中です。${formatSeconds(waitSeconds)}経過後に「視聴完了」ボタンが表示されます。`)
+
+    let remaining = waitSeconds
     timerRef.current = setInterval(() => {
       remaining -= 1
       if (remaining <= 0) {
         if (timerRef.current) clearInterval(timerRef.current)
         setCanComplete(true)
+        setCompletionMessage('')
       }
     }, 1000)
   }
@@ -341,7 +362,7 @@ export default function WatchPage() {
       return (
         <iframe
           width="100%"
-          height="360"
+          height="700"
           src={media.src}
           title={selectedEpisode.title}
           allow="autoplay"
@@ -380,7 +401,7 @@ export default function WatchPage() {
     return (
       <iframe
         width="100%"
-        height="360"
+        height="700"
         src={media.src}
         title={selectedEpisode.title}
         allowFullScreen
@@ -687,18 +708,19 @@ export default function WatchPage() {
               }}
             >
               <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '6px' }}>
-                動画一覧
+                コンテンツ一覧
               </div>
               <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7 }}>
-                上から順番に視聴してください。前の動画を見終わると、次の動画を開けます。
+                上から順番に見てください。前の項目を見終わると、次を開けます。
               </div>
             </div>
 
-            {channelEpisodes.length === 0 && <p style={{ color: '#94a3b8' }}>動画がありません</p>}
+            {channelEpisodes.length === 0 && <p style={{ color: '#94a3b8' }}>コンテンツがありません</p>}
 
             {channelEpisodes.map((ep, index) => {
               const isLocked = index > 0 && !isEpisodeWatched(channelEpisodes[index - 1].id)
               const isWatched = isEpisodeWatched(ep.id)
+              const isDocument = ep.content_type === 'document'
 
               return (
                 <div
@@ -733,7 +755,7 @@ export default function WatchPage() {
                       fontWeight: 'bold',
                     }}
                   >
-                    {isWatched ? 'OK' : '▶'}
+                    {isWatched ? 'OK' : isDocument ? '資' : '▶'}
                   </div>
 
                   <span
@@ -746,6 +768,20 @@ export default function WatchPage() {
                     }}
                   >
                     第{ep.order_no}回　{ep.title}
+                  </span>
+
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      color: isDocument ? '#b45309' : '#166534',
+                      fontWeight: 'bold',
+                      backgroundColor: isDocument ? '#fef3c7' : '#dcfce7',
+                      padding: '3px 10px',
+                      borderRadius: '20px',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {isDocument ? '資料' : '動画'}
                   </span>
 
                   {isWatched && (
@@ -792,7 +828,7 @@ export default function WatchPage() {
                 fontWeight: 'bold',
               }}
             >
-              ← 動画一覧に戻る
+              ← 一覧に戻る
             </button>
 
             <div
@@ -815,7 +851,11 @@ export default function WatchPage() {
                 第{selectedEpisode.order_no}回　{selectedEpisode.title}
               </h2>
               <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7 }}>
-                動画を見終わったあと、下の「視聴完了」を押してください。
+                {selectedEpisode.content_type === 'document'
+                  ? '資料を確認したあと、下の完了ボタンを押してください。'
+                  : `動画を見終わったあと、下の「視聴完了」を押してください。完了までの時間は ${formatSeconds(
+                      selectedEpisode.completion_seconds || 180
+                    )} です。`}
               </div>
             </div>
 
@@ -839,7 +879,7 @@ export default function WatchPage() {
                     marginBottom: '8px',
                   }}
                 >
-                  視聴完了を記録する
+                  {selectedEpisode.content_type === 'document' ? '閲覧完了を記録する' : '視聴完了を記録する'}
                 </h3>
 
                 <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px', lineHeight: 1.7 }}>
@@ -983,7 +1023,11 @@ export default function WatchPage() {
                     marginTop: '8px',
                   }}
                 >
-                  {loading ? '記録中...' : '視聴完了'}
+                  {loading
+                    ? '記録中...'
+                    : selectedEpisode.content_type === 'document'
+                      ? '閲覧完了'
+                      : '視聴完了'}
                 </button>
               </div>
             )}
@@ -999,7 +1043,7 @@ export default function WatchPage() {
                   lineHeight: 1.7,
                 }}
               >
-                初回視聴中です。3分経過後に「視聴完了」ボタンが表示されます。
+                {completionMessage || '視聴中です。完了ボタンはまだ表示されません。'}
               </div>
             )}
 
@@ -1021,7 +1065,9 @@ export default function WatchPage() {
                     marginBottom: '16px',
                   }}
                 >
-                  視聴完了を記録しました
+                  {selectedEpisode.content_type === 'document'
+                    ? '閲覧完了を記録しました'
+                    : '視聴完了を記録しました'}
                 </p>
 
                 <button
@@ -1036,7 +1082,7 @@ export default function WatchPage() {
                     fontSize: '15px',
                   }}
                 >
-                  動画一覧に戻る
+                  一覧に戻る
                 </button>
               </div>
             )}
