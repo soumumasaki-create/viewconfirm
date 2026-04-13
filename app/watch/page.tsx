@@ -283,12 +283,17 @@ export default function WatchPage() {
   }
 
   const handleComplete = async () => {
-    if (!myName || !companyId || !selectedEpisode) return
+    if (!selectedEpisode) return
+
+    const effectiveName = isEmployee ? (loginName || myName) : myName
+    const effectiveCompanyId = companyId
+
+    if (!effectiveName || !effectiveCompanyId) return
 
     setLoading(true)
 
     const allNames = [
-      myName,
+      effectiveName,
       ...subNames
         .filter((n) => n.last.trim() !== '' || n.first.trim() !== '')
         .map((n) => `${n.last} ${n.first}`.trim()),
@@ -299,7 +304,7 @@ export default function WatchPage() {
     for (const name of allNames) {
       await supabase.from('watch_logs').insert({
         user_name: name,
-        company_id: Number(companyId),
+        company_id: Number(effectiveCompanyId),
         episode_id: selectedEpisode.id,
         watched_at: new Date().toISOString(),
       })
@@ -886,68 +891,92 @@ export default function WatchPage() {
                   複数人で一緒に見た場合は、下に氏名2〜5も入力してください。
                 </p>
 
-                <div style={{ marginBottom: '16px' }}>
-                  <label
+                {isEmployee ? (
+                  <div
                     style={{
-                      fontSize: '13px',
-                      color: '#475569',
-                      marginBottom: '6px',
-                      display: 'block',
+                      marginBottom: '16px',
+                      padding: '14px 16px',
+                      borderRadius: '10px',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
                     }}
                   >
-                    会社
-                  </label>
-                  <select
-                    value={companyId}
-                    onChange={(e) => setCompanyId(e.target.value)}
-                    disabled={isEmployee}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '15px',
-                      color: '#0f172a',
-                      backgroundColor: isEmployee ? '#f1f5f9' : '#f8fafc',
-                    }}
-                  >
-                    <option value="">選択してください</option>
-                    {companies.map((co) => (
-                      <option key={co.id} value={co.id}>
-                        {co.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    <div style={{ fontSize: '13px', color: '#475569', marginBottom: '10px', fontWeight: 'bold' }}>
+                      ログイン中の社員情報を自動で使用します
+                    </div>
 
-                <div style={{ marginBottom: '16px' }}>
-                  <label
-                    style={{
-                      fontSize: '13px',
-                      color: '#475569',
-                      marginBottom: '6px',
-                      display: 'block',
-                      fontWeight: '600',
-                    }}
-                  >
-                    氏名1（自分）
-                  </label>
-                  <input
-                    value={myName}
-                    readOnly={isEmployee}
-                    onChange={(e) => setMyName(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '15px',
-                      color: '#0f172a',
-                      backgroundColor: isEmployee ? '#f1f5f9' : '#f8fafc',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
+                    <div style={{ fontSize: '14px', color: '#0f172a', marginBottom: '8px' }}>
+                      会社：{employeeCompany || '未設定'}
+                    </div>
+
+                    <div style={{ fontSize: '14px', color: '#0f172a' }}>
+                      氏名1（自分）：{loginName || myName || '未設定'}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ marginBottom: '16px' }}>
+                      <label
+                        style={{
+                          fontSize: '13px',
+                          color: '#475569',
+                          marginBottom: '6px',
+                          display: 'block',
+                        }}
+                      >
+                        会社
+                      </label>
+                      <select
+                        value={companyId}
+                        onChange={(e) => setCompanyId(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '15px',
+                          color: '#0f172a',
+                          backgroundColor: '#f8fafc',
+                        }}
+                      >
+                        <option value="">選択してください</option>
+                        {companies.map((co) => (
+                          <option key={co.id} value={co.id}>
+                            {co.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ marginBottom: '16px' }}>
+                      <label
+                        style={{
+                          fontSize: '13px',
+                          color: '#475569',
+                          marginBottom: '6px',
+                          display: 'block',
+                          fontWeight: '600',
+                        }}
+                      >
+                        氏名1（自分）
+                      </label>
+                      <input
+                        value={myName}
+                        onChange={(e) => setMyName(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '15px',
+                          color: '#0f172a',
+                          backgroundColor: '#f8fafc',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
 
                 {subNames.map((name, index) => (
                   <div key={index} style={{ marginBottom: '12px' }}>
