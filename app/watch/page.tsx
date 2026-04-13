@@ -44,7 +44,7 @@ type WatchLog = {
 
 function appendYouTubeEmbedParams(url: string): string {
   const separator = url.includes('?') ? '&' : '?'
-  return `${url}${separator}rel=0&modestbranding=1&playsinline=1&disablekb=1`
+  return `${url}${separator}rel=0&modestbranding=1&playsinline=1&disablekb=1&controls=0&fs=0&enablejsapi=1`
 }
 
 function getYouTubeEmbedUrl(url: string): string | null {
@@ -399,8 +399,7 @@ export default function WatchPage() {
           src={media.src}
           title={selectedEpisode.title}
           frameBorder="0"
-          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
+          allow="autoplay; encrypted-media; picture-in-picture"
           referrerPolicy="strict-origin-when-cross-origin"
           style={{
             borderRadius: '12px',
@@ -410,6 +409,7 @@ export default function WatchPage() {
             backgroundColor: '#000',
             userSelect: 'none',
             WebkitUserSelect: 'none',
+            pointerEvents: 'auto',
           }}
         />
       )
