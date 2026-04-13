@@ -42,22 +42,31 @@ type WatchLog = {
   user_name: string
 }
 
+function appendYouTubeEmbedParams(url: string): string {
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}rel=0&modestbranding=1&playsinline=1&disablekb=1`
+}
+
 function getYouTubeEmbedUrl(url: string): string | null {
   try {
     if (!url) return null
 
     if (url.includes('youtube.com/embed/')) {
-      return url
+      return appendYouTubeEmbedParams(url)
     }
 
     const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/)
     if (shortMatch?.[1]) {
-      return `https://www.youtube.com/embed/${shortMatch[1]}`
+      return appendYouTubeEmbedParams(
+        `https://www.youtube.com/embed/${shortMatch[1]}`
+      )
     }
 
     const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/)
     if (watchMatch?.[1]) {
-      return `https://www.youtube.com/embed/${watchMatch[1]}`
+      return appendYouTubeEmbedParams(
+        `https://www.youtube.com/embed/${watchMatch[1]}`
+      )
     }
 
     return null
@@ -233,6 +242,46 @@ export default function WatchPage() {
     }
   }, [])
 
+  useEffect(() => {
+    const stopEvent = (e: Event) => {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    const stopKeyEvent = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase()
+
+      if (
+        e.ctrlKey &&
+        (key === 'c' || key === 'x' || key === 's' || key === 'u' || key === 'p')
+      ) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+
+      if (key === 'f12') {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+
+    document.addEventListener('contextmenu', stopEvent, true)
+    document.addEventListener('copy', stopEvent, true)
+    document.addEventListener('cut', stopEvent, true)
+    document.addEventListener('dragstart', stopEvent, true)
+    document.addEventListener('selectstart', stopEvent, true)
+    document.addEventListener('keydown', stopKeyEvent, true)
+
+    return () => {
+      document.removeEventListener('contextmenu', stopEvent, true)
+      document.removeEventListener('copy', stopEvent, true)
+      document.removeEventListener('cut', stopEvent, true)
+      document.removeEventListener('dragstart', stopEvent, true)
+      document.removeEventListener('selectstart', stopEvent, true)
+      document.removeEventListener('keydown', stopKeyEvent, true)
+    }
+  }, [])
+
   const isEpisodeWatched = (episodeId: number) => {
     if (isEmployee && loginName) {
       return watchLogs.some(
@@ -350,14 +399,17 @@ export default function WatchPage() {
           src={media.src}
           title={selectedEpisode.title}
           frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
           style={{
             borderRadius: '12px',
-            marginBottom: '24px',
+            marginBottom: '12px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             display: 'block',
             backgroundColor: '#000',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
           }}
         />
       )
@@ -372,13 +424,16 @@ export default function WatchPage() {
           title={selectedEpisode.title}
           allow="autoplay"
           allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
           style={{
             border: 'none',
             borderRadius: '12px',
-            marginBottom: '24px',
+            marginBottom: '12px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             display: 'block',
             backgroundColor: '#fff',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
           }}
         />
       )
@@ -391,13 +446,16 @@ export default function WatchPage() {
           height="700"
           src={media.src}
           title={selectedEpisode.title}
+          referrerPolicy="strict-origin-when-cross-origin"
           style={{
             border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            marginBottom: '24px',
+            marginBottom: '12px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             display: 'block',
             backgroundColor: '#fff',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
           }}
         />
       )
@@ -410,20 +468,31 @@ export default function WatchPage() {
         src={media.src}
         title={selectedEpisode.title}
         allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
         style={{
           border: 'none',
           borderRadius: '12px',
-          marginBottom: '24px',
+          marginBottom: '12px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
           display: 'block',
           backgroundColor: '#fff',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
         }}
       />
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#f8fafc',
+        fontFamily: 'sans-serif',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+      }}
+    >
       <header
         style={{
           backgroundColor: '#1e3a5f',
@@ -865,6 +934,21 @@ export default function WatchPage() {
             </div>
 
             {renderMedia()}
+
+            <div
+              style={{
+                backgroundColor: '#fff7ed',
+                border: '1px solid #fdba74',
+                borderRadius: '12px',
+                padding: '14px 16px',
+                color: '#9a3412',
+                fontSize: '13px',
+                lineHeight: 1.7,
+                marginBottom: '16px',
+              }}
+            >
+              この画面では、右クリックやコピーをしにくくしています。動画URLや資料URLの共有・持ち出しは禁止です。
+            </div>
 
             {!watched && canComplete && (
               <div
