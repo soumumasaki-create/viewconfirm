@@ -1,7 +1,42 @@
 ﻿'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+
+declare global {
+  interface Window {
+    YT?: {
+      Player: new (
+        elementId: string,
+        options: {
+          videoId: string
+          playerVars?: Record<string, number | string>
+          events?: {
+            onReady?: (event: { target: YouTubePlayer }) => void
+            onStateChange?: (event: { data: number; target: YouTubePlayer }) => void
+          }
+        }
+      ) => YouTubePlayer
+      PlayerState: {
+        UNSTARTED: number
+        ENDED: number
+        PLAYING: number
+        PAUSED: number
+        BUFFERING: number
+        CUED: number
+      }
+    }
+    onYouTubeIframeAPIReady?: () => void
+  }
+}
+
+type YouTubePlayer = {
+  playVideo: () => void
+  pauseVideo: () => void
+  destroy: () => void
+  getCurrentTime: () => number
+  seekTo: (seconds: number, allowSeekAhead?: boolean) => void
+}
 
 type Channel = {
   id: number
@@ -42,32 +77,18 @@ type WatchLog = {
   user_name: string
 }
 
-function appendYouTubeEmbedParams(url: string): string {
-  const separator = url.includes('?') ? '&' : '?'
-  return `${url}${separator}rel=0&modestbranding=1&playsinline=1&disablekb=1&controls=0&fs=0&enablejsapi=1`
-}
-
-function getYouTubeEmbedUrl(url: string): string | null {
+function getYouTubeVideoId(url: string): string | null {
   try {
     if (!url) return null
 
-    if (url.includes('youtube.com/embed/')) {
-      return appendYouTubeEmbedParams(url)
-    }
+    const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/)
+    if (embedMatch?.[1]) return embedMatch[1]
 
     const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/)
-    if (shortMatch?.[1]) {
-      return appendYouTubeEmbedParams(
-        `https://www.youtube.com/embed/${shortMatch[1]}`
-      )
-    }
+    if (shortMatch?.[1]) return shortMatch[1]
 
     const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/)
-    if (watchMatch?.[1]) {
-      return appendYouTubeEmbedParams(
-        `https://www.youtube.com/embed/${watchMatch[1]}`
-      )
-    }
+    if (watchMatch?.[1]) return watchMatch[1]
 
     return null
   } catch {
@@ -96,11 +117,11 @@ function isPdfUrl(url: string): boolean {
 }
 
 function getMediaInfo(url: string) {
-  const youtubeEmbed = getYouTubeEmbedUrl(url)
-  if (youtubeEmbed) {
+  const youtubeVideoId = getYouTubeVideoId(url)
+  if (youtubeVideoId) {
     return {
       type: 'youtube' as const,
-      src: youtubeEmbed,
+      videoId: youtubeVideoId,
     }
   }
 
@@ -162,6 +183,10 @@ function getWatchProgressStorageKey(episodeId: number, userKey: string) {
   return `watch-progress:${userKey}:episode:${episodeId}`
 }
 
+function getVideoPositionStorageKey(episodeId: number, userKey: string) {
+  return `watch-video-position:${userKey}:episode:${episodeId}`
+}
+
 export default function WatchPage() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [episodes, setEpisodes] = useState<Episode[]>([])
@@ -188,10 +213,21 @@ export default function WatchPage() {
   const [employeeAffiliation, setEmployeeAffiliation] = useState('')
   const [completionMessage, setCompletionMessage] = useState('')
   const [remainingSeconds, setRemainingSeconds] = useState(0)
+  const [youtubeApiReady, setYouTubeApiReady] = useState(false)
+  const [isYouTubePlaying, setIsYouTubePlaying] = useState(false)
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const remainingRef = useRef(0)
   const pageActiveRef = useRef(true)
+  const playerRef = useRef<YouTubePlayer | null>(null)
+  const playerContainerIdRef = useRef(`youtube-player-${Math.random().toString(36).slice(2)}`)
+  const positionSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const currentEpisodeIdRef = useRef<number | null>(null)
+
+  const selectedMedia = useMemo(() => {
+    if (!selectedEpisode?.video_url) return null
+    return getMediaInfo(selectedEpisode.video_url)
+  }, [selectedEpisode])
 
   const getProgressUserKey = () => {
     if (isEmployee && loginName) return loginName
@@ -237,6 +273,51 @@ export default function WatchPage() {
     } catch {
       // 何もしない
     }
+  }
+
+  const loadSavedVideoPosition = (episodeId: number) => {
+    if (typeof window === 'undefined') return 0
+
+    try {
+      const storageKey = getVideoPositionStorageKey(episodeId, getProgressUserKey())
+      const savedValue = window.sessionStorage.getItem(storageKey)
+
+      if (!savedValue) return 0
+
+      const parsed = Number(savedValue)
+      if (!Number.isFinite(parsed)) return 0
+
+      return Math.max(0, parsed)
+    } catch {
+      return 0
+    }
+  }
+
+  const saveVideoPosition = (episodeId: number, seconds: number) => {
+    if (typeof window === 'undefined') return
+
+    try {
+      const storageKey = getVideoPositionStorageKey(episodeId, getProgressUserKey())
+      window.sessionStorage.setItem(storageKey, String(Math.max(0, Math.floor(seconds))))
+    } catch {
+      // 何もしない
+    }
+  }
+
+  const clearSavedVideoPosition = (episodeId: number) => {
+    if (typeof window === 'undefined') return
+
+    try {
+      const storageKey = getVideoPositionStorageKey(episodeId, getProgressUserKey())
+      window.sessionStorage.removeItem(storageKey)
+    } catch {
+      // 何もしない
+    }
+  }
+
+  const stopAllTimers = () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    if (positionSaveTimerRef.current) clearInterval(positionSaveTimerRef.current)
   }
 
   useEffect(() => {
@@ -290,26 +371,64 @@ export default function WatchPage() {
   }, [])
 
   useEffect(() => {
+    const existingScript = document.querySelector(
+      'script[src="https://www.youtube.com/iframe_api"]'
+    ) as HTMLScriptElement | null
+
+    const handleReady = () => setYouTubeApiReady(true)
+
+    if (window.YT?.Player) {
+      setYouTubeApiReady(true)
+      return
+    }
+
+    window.onYouTubeIframeAPIReady = handleReady
+
+    if (!existingScript) {
+      const script = document.createElement('script')
+      script.src = 'https://www.youtube.com/iframe_api'
+      document.body.appendChild(script)
+    }
+
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
+      window.onYouTubeIframeAPIReady = undefined
     }
   }, [])
 
   useEffect(() => {
-    const handleVisibilityOrFocusChange = () => {
-      pageActiveRef.current = !document.hidden && document.hasFocus()
+    return () => {
+      stopAllTimers()
+      if (playerRef.current) {
+        playerRef.current.destroy()
+        playerRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      pageActiveRef.current = !document.hidden
+
+      if (!pageActiveRef.current) {
+        setIsYouTubePlaying(false)
+        if (playerRef.current && currentEpisodeIdRef.current) {
+          try {
+            const currentTime = playerRef.current.getCurrentTime()
+            saveVideoPosition(currentEpisodeIdRef.current, currentTime)
+            playerRef.current.pauseVideo()
+          } catch {
+            // 何もしない
+          }
+        }
+      }
     }
 
-    handleVisibilityOrFocusChange()
+    handleVisibilityChange()
 
-    document.addEventListener('visibilitychange', handleVisibilityOrFocusChange)
-    window.addEventListener('focus', handleVisibilityOrFocusChange)
-    window.addEventListener('blur', handleVisibilityOrFocusChange)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityOrFocusChange)
-      window.removeEventListener('focus', handleVisibilityOrFocusChange)
-      window.removeEventListener('blur', handleVisibilityOrFocusChange)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])
 
@@ -371,32 +490,181 @@ export default function WatchPage() {
       setCanComplete(true)
       setCompletionMessage('')
       clearSavedRemainingSeconds(selectedEpisode.id)
+      clearSavedVideoPosition(selectedEpisode.id)
       return
     }
 
-    if (pageActiveRef.current) {
-      setCompletionMessage(
-        `初回視聴中です。あと${formatSeconds(remainingSeconds)}で「視聴完了」ボタンが表示されます。`
-      )
-    } else {
+    if (!pageActiveRef.current) {
       setCompletionMessage(
         `この画面を開いて視聴を続けてください。あと${formatSeconds(remainingSeconds)}で「視聴完了」ボタンが表示されます。`
       )
+      return
     }
-  }, [selectedEpisode, remainingSeconds, canComplete, watchLogs, loginName, isEmployee])
+
+    if (selectedMedia?.type === 'youtube') {
+      if (isYouTubePlaying) {
+        setCompletionMessage(
+          `初回視聴中です。あと${formatSeconds(remainingSeconds)}で「視聴完了」ボタンが表示されます。`
+        )
+      } else {
+        setCompletionMessage(
+          `動画を再生してください。あと${formatSeconds(remainingSeconds)}で「視聴完了」ボタンが表示されます。`
+        )
+      }
+      return
+    }
+
+    setCompletionMessage(
+      `初回視聴中です。あと${formatSeconds(remainingSeconds)}で「視聴完了」ボタンが表示されます。`
+    )
+  }, [selectedEpisode, remainingSeconds, canComplete, watchLogs, loginName, isEmployee, isYouTubePlaying, selectedMedia])
+
+  useEffect(() => {
+    if (!selectedEpisode || selectedMedia?.type !== 'youtube' || !youtubeApiReady) return
+
+    const videoId = selectedMedia.videoId
+    const savedPosition = loadSavedVideoPosition(selectedEpisode.id)
+
+    if (playerRef.current) {
+      playerRef.current.destroy()
+      playerRef.current = null
+    }
+
+    const YT = window.YT
+    if (!YT?.Player) return
+
+    playerRef.current = new YT.Player(playerContainerIdRef.current, {
+      videoId,
+      playerVars: {
+        rel: 0,
+        modestbranding: 1,
+        playsinline: 1,
+        disablekb: 1,
+        controls: 0,
+        fs: 0,
+      },
+      events: {
+        onReady: (event) => {
+          if (savedPosition > 0) {
+            event.target.seekTo(savedPosition, true)
+          }
+        },
+        onStateChange: (event) => {
+          const playerState = window.YT?.PlayerState
+          if (!playerState || !selectedEpisode) return
+
+          if (event.data === playerState.PLAYING && pageActiveRef.current) {
+            setIsYouTubePlaying(true)
+          } else {
+            setIsYouTubePlaying(false)
+          }
+
+          if (event.data === playerState.PAUSED || event.data === playerState.BUFFERING) {
+            try {
+              saveVideoPosition(selectedEpisode.id, event.target.getCurrentTime())
+            } catch {
+              // 何もしない
+            }
+          }
+
+          if (event.data === playerState.ENDED) {
+            try {
+              saveVideoPosition(selectedEpisode.id, event.target.getCurrentTime())
+            } catch {
+              // 何もしない
+            }
+          }
+        },
+      },
+    })
+
+    return () => {
+      setIsYouTubePlaying(false)
+      if (playerRef.current) {
+        try {
+          if (selectedEpisode) {
+            saveVideoPosition(selectedEpisode.id, playerRef.current.getCurrentTime())
+          }
+          playerRef.current.destroy()
+        } catch {
+          // 何もしない
+        }
+        playerRef.current = null
+      }
+    }
+  }, [selectedEpisode, selectedMedia, youtubeApiReady])
+
+  useEffect(() => {
+    if (!selectedEpisode || selectedEpisode.content_type === 'document') return
+    if (isEpisodeWatched(selectedEpisode.id)) return
+
+    stopAllTimers()
+
+    if (selectedMedia?.type === 'youtube') {
+      timerRef.current = setInterval(() => {
+        if (!pageActiveRef.current) return
+        if (!isYouTubePlaying) return
+
+        remainingRef.current -= 1
+        const nextValue = Math.max(0, remainingRef.current)
+
+        setRemainingSeconds(nextValue)
+        saveRemainingSeconds(selectedEpisode.id, nextValue)
+
+        if (nextValue <= 0) {
+          stopAllTimers()
+          setCanComplete(true)
+          setCompletionMessage('')
+          clearSavedRemainingSeconds(selectedEpisode.id)
+        }
+      }, 1000)
+
+      positionSaveTimerRef.current = setInterval(() => {
+        if (!selectedEpisode || !playerRef.current) return
+
+        try {
+          const currentTime = playerRef.current.getCurrentTime()
+          saveVideoPosition(selectedEpisode.id, currentTime)
+        } catch {
+          // 何もしない
+        }
+      }, 1000)
+
+      return
+    }
+
+    timerRef.current = setInterval(() => {
+      if (!pageActiveRef.current) return
+
+      remainingRef.current -= 1
+      const nextValue = Math.max(0, remainingRef.current)
+
+      setRemainingSeconds(nextValue)
+      saveRemainingSeconds(selectedEpisode.id, nextValue)
+
+      if (nextValue <= 0) {
+        stopAllTimers()
+        setCanComplete(true)
+        setCompletionMessage('')
+        clearSavedRemainingSeconds(selectedEpisode.id)
+      }
+    }, 1000)
+  }, [selectedEpisode, selectedMedia, isYouTubePlaying, watchLogs, loginName, isEmployee])
 
   const handleSelectEpisode = (ep: Episode) => {
+    stopAllTimers()
     setSelectedEpisode(ep)
+    currentEpisodeIdRef.current = ep.id
     setWatched(false)
     setCompletionMessage('')
     setRemainingSeconds(0)
+    setIsYouTubePlaying(false)
     remainingRef.current = 0
-
-    if (timerRef.current) clearInterval(timerRef.current)
 
     if (isEpisodeWatched(ep.id)) {
       setCanComplete(true)
       clearSavedRemainingSeconds(ep.id)
+      clearSavedVideoPosition(ep.id)
       return
     }
 
@@ -415,23 +683,6 @@ export default function WatchPage() {
     setRemainingSeconds(initialRemainingSeconds)
     remainingRef.current = initialRemainingSeconds
     saveRemainingSeconds(ep.id, initialRemainingSeconds)
-
-    timerRef.current = setInterval(() => {
-      if (!pageActiveRef.current) return
-
-      remainingRef.current -= 1
-      const nextValue = Math.max(0, remainingRef.current)
-
-      setRemainingSeconds(nextValue)
-      saveRemainingSeconds(ep.id, nextValue)
-
-      if (nextValue <= 0) {
-        if (timerRef.current) clearInterval(timerRef.current)
-        setCanComplete(true)
-        setCompletionMessage('')
-        clearSavedRemainingSeconds(ep.id)
-      }
-    }, 1000)
   }
 
   const handleLogout = async () => {
@@ -469,6 +720,7 @@ export default function WatchPage() {
     }
 
     clearSavedRemainingSeconds(selectedEpisode.id)
+    clearSavedVideoPosition(selectedEpisode.id)
     setWatched(true)
     setWatchLogs([...watchLogs, ...newLogs])
     setLoading(false)
@@ -496,40 +748,31 @@ export default function WatchPage() {
     : []
 
   const renderMedia = () => {
-    if (!selectedEpisode?.video_url) return null
+    if (!selectedEpisode?.video_url || !selectedMedia) return null
 
-    const media = getMediaInfo(selectedEpisode.video_url)
-
-    if (media.type === 'youtube') {
+    if (selectedMedia.type === 'youtube') {
       return (
-        <iframe
-          width="100%"
-          height="360"
-          src={media.src}
-          title={selectedEpisode.title}
-          frameBorder="0"
-          allow="autoplay; encrypted-media; picture-in-picture"
-          referrerPolicy="strict-origin-when-cross-origin"
+        <div
+          id={playerContainerIdRef.current}
           style={{
+            width: '100%',
+            height: '360px',
             borderRadius: '12px',
             marginBottom: '12px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            display: 'block',
+            overflow: 'hidden',
             backgroundColor: '#000',
-            userSelect: 'none',
-            WebkitUserSelect: 'none',
-            pointerEvents: 'auto',
           }}
         />
       )
     }
 
-    if (media.type === 'drive') {
+    if (selectedMedia.type === 'drive') {
       return (
         <iframe
           width="100%"
           height="700"
-          src={media.src}
+          src={selectedMedia.src}
           title={selectedEpisode.title}
           allow="autoplay"
           allowFullScreen
@@ -548,12 +791,12 @@ export default function WatchPage() {
       )
     }
 
-    if (media.type === 'pdf') {
+    if (selectedMedia.type === 'pdf') {
       return (
         <iframe
           width="100%"
           height="700"
-          src={media.src}
+          src={selectedMedia.src}
           title={selectedEpisode.title}
           referrerPolicy="strict-origin-when-cross-origin"
           style={{
@@ -574,7 +817,7 @@ export default function WatchPage() {
       <iframe
         width="100%"
         height="700"
-        src={media.src}
+        src={selectedMedia.src}
         title={selectedEpisode.title}
         allowFullScreen
         referrerPolicy="strict-origin-when-cross-origin"
@@ -997,9 +1240,10 @@ export default function WatchPage() {
             <button
               onClick={() => {
                 setSelectedEpisode(null)
-                if (timerRef.current) clearInterval(timerRef.current)
+                stopAllTimers()
                 setCompletionMessage('')
                 setRemainingSeconds(0)
+                setIsYouTubePlaying(false)
                 remainingRef.current = 0
               }}
               style={{
