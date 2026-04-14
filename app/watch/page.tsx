@@ -158,6 +158,10 @@ function formatSeconds(totalSeconds: number) {
   return `${minutes}分${String(seconds).padStart(2, '0')}秒`
 }
 
+function getWatchProgressStorageKey(episodeId: number, userKey: string) {
+  return `watch-progress:${userKey}:episode:${episodeId}`
+}
+
 export default function WatchPage() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [episodes, setEpisodes] = useState<Episode[]>([])
@@ -183,8 +187,57 @@ export default function WatchPage() {
   const [employeeCompany, setEmployeeCompany] = useState('')
   const [employeeAffiliation, setEmployeeAffiliation] = useState('')
   const [completionMessage, setCompletionMessage] = useState('')
+  const [remainingSeconds, setRemainingSeconds] = useState(0)
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const remainingRef = useRef(0)
+  const pageActiveRef = useRef(true)
+
+  const getProgressUserKey = () => {
+    if (isEmployee && loginName) return loginName
+    if (myName.trim()) return myName.trim()
+    return 'guest'
+  }
+
+  const loadSavedRemainingSeconds = (episodeId: number, defaultSeconds: number) => {
+    if (typeof window === 'undefined') return defaultSeconds
+
+    try {
+      const storageKey = getWatchProgressStorageKey(episodeId, getProgressUserKey())
+      const savedValue = window.sessionStorage.getItem(storageKey)
+
+      if (!savedValue) return defaultSeconds
+
+      const parsed = Number(savedValue)
+      if (!Number.isFinite(parsed)) return defaultSeconds
+
+      return Math.max(0, Math.min(defaultSeconds, parsed))
+    } catch {
+      return defaultSeconds
+    }
+  }
+
+  const saveRemainingSeconds = (episodeId: number, seconds: number) => {
+    if (typeof window === 'undefined') return
+
+    try {
+      const storageKey = getWatchProgressStorageKey(episodeId, getProgressUserKey())
+      window.sessionStorage.setItem(storageKey, String(Math.max(0, seconds)))
+    } catch {
+      // 何もしない
+    }
+  }
+
+  const clearSavedRemainingSeconds = (episodeId: number) => {
+    if (typeof window === 'undefined') return
+
+    try {
+      const storageKey = getWatchProgressStorageKey(episodeId, getProgressUserKey())
+      window.sessionStorage.removeItem(storageKey)
+    } catch {
+      // 何もしない
+    }
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -243,6 +296,24 @@ export default function WatchPage() {
   }, [])
 
   useEffect(() => {
+    const handleVisibilityOrFocusChange = () => {
+      pageActiveRef.current = !document.hidden && document.hasFocus()
+    }
+
+    handleVisibilityOrFocusChange()
+
+    document.addEventListener('visibilitychange', handleVisibilityOrFocusChange)
+    window.addEventListener('focus', handleVisibilityOrFocusChange)
+    window.addEventListener('blur', handleVisibilityOrFocusChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocusChange)
+      window.removeEventListener('focus', handleVisibilityOrFocusChange)
+      window.removeEventListener('blur', handleVisibilityOrFocusChange)
+    }
+  }, [])
+
+  useEffect(() => {
     const stopEvent = (e: Event) => {
       e.preventDefault()
       e.stopPropagation()
@@ -291,15 +362,41 @@ export default function WatchPage() {
     return watchLogs.some((w) => w.episode_id === episodeId)
   }
 
+  useEffect(() => {
+    if (!selectedEpisode || canComplete) return
+    if (selectedEpisode.content_type === 'document') return
+    if (isEpisodeWatched(selectedEpisode.id)) return
+
+    if (remainingSeconds <= 0) {
+      setCanComplete(true)
+      setCompletionMessage('')
+      clearSavedRemainingSeconds(selectedEpisode.id)
+      return
+    }
+
+    if (pageActiveRef.current) {
+      setCompletionMessage(
+        `初回視聴中です。あと${formatSeconds(remainingSeconds)}で「視聴完了」ボタンが表示されます。`
+      )
+    } else {
+      setCompletionMessage(
+        `この画面を開いて視聴を続けてください。あと${formatSeconds(remainingSeconds)}で「視聴完了」ボタンが表示されます。`
+      )
+    }
+  }, [selectedEpisode, remainingSeconds, canComplete, watchLogs, loginName, isEmployee])
+
   const handleSelectEpisode = (ep: Episode) => {
     setSelectedEpisode(ep)
     setWatched(false)
     setCompletionMessage('')
+    setRemainingSeconds(0)
+    remainingRef.current = 0
 
     if (timerRef.current) clearInterval(timerRef.current)
 
     if (isEpisodeWatched(ep.id)) {
       setCanComplete(true)
+      clearSavedRemainingSeconds(ep.id)
       return
     }
 
@@ -312,16 +409,27 @@ export default function WatchPage() {
       ? ep.completion_seconds
       : 180
 
-    setCanComplete(false)
-    setCompletionMessage(`初回視聴中です。${formatSeconds(waitSeconds)}経過後に「視聴完了」ボタンが表示されます。`)
+    const initialRemainingSeconds = loadSavedRemainingSeconds(ep.id, waitSeconds)
 
-    let remaining = waitSeconds
+    setCanComplete(false)
+    setRemainingSeconds(initialRemainingSeconds)
+    remainingRef.current = initialRemainingSeconds
+    saveRemainingSeconds(ep.id, initialRemainingSeconds)
+
     timerRef.current = setInterval(() => {
-      remaining -= 1
-      if (remaining <= 0) {
+      if (!pageActiveRef.current) return
+
+      remainingRef.current -= 1
+      const nextValue = Math.max(0, remainingRef.current)
+
+      setRemainingSeconds(nextValue)
+      saveRemainingSeconds(ep.id, nextValue)
+
+      if (nextValue <= 0) {
         if (timerRef.current) clearInterval(timerRef.current)
         setCanComplete(true)
         setCompletionMessage('')
+        clearSavedRemainingSeconds(ep.id)
       }
     }, 1000)
   }
@@ -360,6 +468,7 @@ export default function WatchPage() {
       newLogs.push({ episode_id: selectedEpisode.id, user_name: name })
     }
 
+    clearSavedRemainingSeconds(selectedEpisode.id)
     setWatched(true)
     setWatchLogs([...watchLogs, ...newLogs])
     setLoading(false)
@@ -889,6 +998,9 @@ export default function WatchPage() {
               onClick={() => {
                 setSelectedEpisode(null)
                 if (timerRef.current) clearInterval(timerRef.current)
+                setCompletionMessage('')
+                setRemainingSeconds(0)
+                remainingRef.current = 0
               }}
               style={{
                 marginBottom: '16px',
