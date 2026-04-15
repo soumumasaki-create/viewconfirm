@@ -1309,7 +1309,7 @@ export default function WatchPage() {
               <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7 }}>
                 {selectedEpisode.content_type === 'document'
                   ? '資料を確認したあと、下の完了ボタンを押してください。'
-                  : `動画を見終わったあと、下の「視聴完了」を押してください。完了までの時間は ${formatSeconds(
+                  : `動画を見終わりましたら、下の「視聴完了」を押してください。完了までの時間は ${formatSeconds(
                       selectedEpisode.completion_seconds || 180
                     )} です。`}
               </div>
