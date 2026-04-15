@@ -316,8 +316,25 @@ export default function WatchPage() {
   }
 
   const stopAllTimers = () => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    if (positionSaveTimerRef.current) clearInterval(positionSaveTimerRef.current)
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    if (positionSaveTimerRef.current) {
+      clearInterval(positionSaveTimerRef.current)
+      positionSaveTimerRef.current = null
+    }
+  }
+
+  const resetWatchState = () => {
+    stopAllTimers()
+    setCompletionMessage('')
+    setRemainingSeconds(0)
+    setIsYouTubePlaying(false)
+    setCanComplete(false)
+    setWatched(false)
+    remainingRef.current = 0
+    currentEpisodeIdRef.current = null
   }
 
   useEffect(() => {
@@ -496,7 +513,9 @@ export default function WatchPage() {
 
     if (!pageActiveRef.current) {
       setCompletionMessage(
-        `この画面を開いて視聴を続けてください。あと${formatSeconds(remainingSeconds)}で「視聴完了」ボタンが表示されます。`
+        `別のタブを開いているため、視聴カウントを停止しています。このタブに戻って再生を続けてください。あと${formatSeconds(
+          remainingSeconds
+        )}で「視聴完了」ボタンが表示されます。`
       )
       return
     }
@@ -504,20 +523,35 @@ export default function WatchPage() {
     if (selectedMedia?.type === 'youtube') {
       if (isYouTubePlaying) {
         setCompletionMessage(
-          `初回視聴中です。あと${formatSeconds(remainingSeconds)}で「視聴完了」ボタンが表示されます。`
+          `初回視聴を続けています。あと${formatSeconds(
+            remainingSeconds
+          )}で「視聴完了」ボタンが表示されます。`
         )
       } else {
         setCompletionMessage(
-          `動画を再生してください。あと${formatSeconds(remainingSeconds)}で「視聴完了」ボタンが表示されます。`
+          `動画を再生してください。前回の続きから再開できます。あと${formatSeconds(
+            remainingSeconds
+          )}で「視聴完了」ボタンが表示されます。`
         )
       }
       return
     }
 
     setCompletionMessage(
-      `初回視聴中です。あと${formatSeconds(remainingSeconds)}で「視聴完了」ボタンが表示されます。`
+      `このタブを開いたまま確認してください。あと${formatSeconds(
+        remainingSeconds
+      )}で「視聴完了」ボタンが表示されます。`
     )
-  }, [selectedEpisode, remainingSeconds, canComplete, watchLogs, loginName, isEmployee, isYouTubePlaying, selectedMedia])
+  }, [
+    selectedEpisode,
+    remainingSeconds,
+    canComplete,
+    watchLogs,
+    loginName,
+    isEmployee,
+    isYouTubePlaying,
+    selectedMedia,
+  ])
 
   useEffect(() => {
     if (!selectedEpisode || selectedMedia?.type !== 'youtube' || !youtubeApiReady) return
@@ -652,14 +686,9 @@ export default function WatchPage() {
   }, [selectedEpisode, selectedMedia, isYouTubePlaying, watchLogs, loginName, isEmployee])
 
   const handleSelectEpisode = (ep: Episode) => {
-    stopAllTimers()
+    resetWatchState()
     setSelectedEpisode(ep)
     currentEpisodeIdRef.current = ep.id
-    setWatched(false)
-    setCompletionMessage('')
-    setRemainingSeconds(0)
-    setIsYouTubePlaying(false)
-    remainingRef.current = 0
 
     if (isEpisodeWatched(ep.id)) {
       setCanComplete(true)
@@ -673,9 +702,10 @@ export default function WatchPage() {
       return
     }
 
-    const waitSeconds = ep.completion_seconds && ep.completion_seconds > 0
-      ? ep.completion_seconds
-      : 180
+    const waitSeconds =
+      ep.completion_seconds && ep.completion_seconds > 0
+        ? ep.completion_seconds
+        : 180
 
     const initialRemainingSeconds = loadSavedRemainingSeconds(ep.id, waitSeconds)
 
@@ -1239,12 +1269,8 @@ export default function WatchPage() {
           <div>
             <button
               onClick={() => {
+                resetWatchState()
                 setSelectedEpisode(null)
-                stopAllTimers()
-                setCompletionMessage('')
-                setRemainingSeconds(0)
-                setIsYouTubePlaying(false)
-                remainingRef.current = 0
               }}
               style={{
                 marginBottom: '16px',
@@ -1540,7 +1566,10 @@ export default function WatchPage() {
                 </p>
 
                 <button
-                  onClick={() => setSelectedEpisode(null)}
+                  onClick={() => {
+                    resetWatchState()
+                    setSelectedEpisode(null)
+                  }}
                   style={{
                     padding: '10px 28px',
                     backgroundColor: '#1e3a5f',
