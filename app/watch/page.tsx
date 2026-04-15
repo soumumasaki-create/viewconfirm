@@ -1317,21 +1317,6 @@ export default function WatchPage() {
 
             {renderMedia()}
 
-            <div
-              style={{
-                backgroundColor: '#fff7ed',
-                border: '1px solid #fdba74',
-                borderRadius: '12px',
-                padding: '14px 16px',
-                color: '#9a3412',
-                fontSize: '13px',
-                lineHeight: 1.7,
-                marginBottom: '16px',
-              }}
-            >
-              この画面では、右クリックやコピーをしにくくしています。動画URLや資料URLの共有・持ち出しは禁止です。
-            </div>
-
             {!watched && canComplete && (
               <div
                 style={{
