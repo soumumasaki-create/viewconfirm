@@ -8,6 +8,7 @@ type Admin = {
   name: string
   company: string
   created_at: string
+  is_super_admin: boolean
   can_view_all_companies: boolean
   can_view_own_company: boolean
   can_download_csv: boolean
@@ -25,15 +26,30 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [currentEmail, setCurrentEmail] = useState('')
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
 
   useEffect(() => {
     const init = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (user) setCurrentEmail(user.email || '')
+
+      const loginEmail = user?.email || ''
+      setCurrentEmail(loginEmail)
+
+      if (loginEmail) {
+        const { data: currentAdmin } = await supabase
+          .from('admins')
+          .select('is_super_admin')
+          .eq('email', loginEmail)
+          .maybeSingle()
+
+        setIsSuperAdmin(!!currentAdmin?.is_super_admin)
+      }
+
       fetchAdmins()
     }
+
     init()
   }, [])
 
@@ -43,7 +59,7 @@ export default function AdminUsersPage() {
       .select('*')
       .order('id')
 
-    if (data) setAdmins(data)
+    if (data) setAdmins(data as Admin[])
   }
 
   const handleAdd = async () => {
@@ -100,6 +116,18 @@ export default function AdminUsersPage() {
     backgroundColor: enabled ? '#dcfce7' : '#e2e8f0',
   })
 
+  const superAdminStyle = (enabled: boolean) => ({
+    display: 'inline-block',
+    minWidth: '88px',
+    textAlign: 'center' as const,
+    padding: '4px 10px',
+    borderRadius: '999px',
+    fontSize: '12px',
+    fontWeight: 700,
+    color: enabled ? '#7c2d12' : '#475569',
+    backgroundColor: enabled ? '#ffedd5' : '#e2e8f0',
+  })
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
       <header
@@ -139,9 +167,9 @@ export default function AdminUsersPage() {
         </a>
       </header>
 
-      <main style={{ padding: '40px', maxWidth: '1400px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '32px' }}>
-          👤 管理者ユーザー管理
+      <main style={{ padding: '40px', maxWidth: '1500px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '24px' }}>
+          管理者管理
         </h1>
 
         <div
@@ -149,77 +177,54 @@ export default function AdminUsersPage() {
             backgroundColor: '#fff',
             border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '32px',
+            padding: '24px',
             marginBottom: '32px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
-          <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '20px' }}>
-            管理者を追加する
+          <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '16px' }}>
+            管理者追加
           </h2>
-          <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
-            ※ 初回パスワードは「1234」が自動設定されます
-          </p>
 
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '13px', color: '#475569', marginBottom: '6px', display: 'block' }}>
-              氏名
-            </label>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: '12px',
+              marginBottom: '16px',
+            }}
+          >
             <input
-              placeholder="例：山田 太郎"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              placeholder="氏名"
               style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
+                padding: '10px 12px',
                 border: '1px solid #cbd5e1',
-                fontSize: '15px',
-                color: '#0f172a',
-                backgroundColor: '#f8fafc',
-                boxSizing: 'border-box',
+                borderRadius: '8px',
+                fontSize: '14px',
               }}
             />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '13px', color: '#475569', marginBottom: '6px', display: 'block' }}>
-              所属会社
-            </label>
             <input
-              placeholder="例：株式会社MIRAI"
               value={company}
               onChange={(e) => setCompany(e.target.value)}
+              placeholder="所属会社"
               style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
+                padding: '10px 12px',
                 border: '1px solid #cbd5e1',
-                fontSize: '15px',
-                color: '#0f172a',
-                backgroundColor: '#f8fafc',
-                boxSizing: 'border-box',
+                borderRadius: '8px',
+                fontSize: '14px',
               }}
             />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '13px', color: '#475569', marginBottom: '6px', display: 'block' }}>
-              メールアドレス
-            </label>
             <input
-              placeholder="example@mirai.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="メールアドレス"
               style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
+                padding: '10px 12px',
                 border: '1px solid #cbd5e1',
-                fontSize: '15px',
-                color: '#0f172a',
-                backgroundColor: '#f8fafc',
-                boxSizing: 'border-box',
+                borderRadius: '8px',
+                fontSize: '14px',
               }}
             />
           </div>
@@ -267,12 +272,13 @@ export default function AdminUsersPage() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1380px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1500px' }}>
             <thead>
               <tr style={{ backgroundColor: '#1e3a5f' }}>
                 <th style={{ padding: '14px 16px', textAlign: 'left', color: '#fff', fontSize: '13px' }}>氏名</th>
                 <th style={{ padding: '14px 16px', textAlign: 'left', color: '#fff', fontSize: '13px' }}>所属会社</th>
                 <th style={{ padding: '14px 16px', textAlign: 'left', color: '#fff', fontSize: '13px' }}>メールアドレス</th>
+                <th style={{ padding: '14px 16px', textAlign: 'center', color: '#fff', fontSize: '13px' }}>スーパー管理者</th>
                 <th style={{ padding: '14px 16px', textAlign: 'center', color: '#fff', fontSize: '13px' }}>全社閲覧</th>
                 <th style={{ padding: '14px 16px', textAlign: 'center', color: '#fff', fontSize: '13px' }}>自社閲覧</th>
                 <th style={{ padding: '14px 16px', textAlign: 'center', color: '#fff', fontSize: '13px' }}>CSV</th>
@@ -286,7 +292,7 @@ export default function AdminUsersPage() {
             <tbody>
               {admins.length === 0 && (
                 <tr>
-                  <td colSpan={11} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
+                  <td colSpan={12} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
                     管理者がいません
                   </td>
                 </tr>
@@ -324,6 +330,12 @@ export default function AdminUsersPage() {
 
                   <td style={{ padding: '14px 16px', color: '#64748b', fontSize: '14px' }}>
                     {admin.email}
+                  </td>
+
+                  <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                    <span style={superAdminStyle(admin.is_super_admin)}>
+                      {admin.is_super_admin ? 'スーパー管理者' : '一般管理者'}
+                    </span>
                   </td>
 
                   <td style={{ padding: '14px 16px', textAlign: 'center' }}>
@@ -377,20 +389,22 @@ export default function AdminUsersPage() {
                         flexWrap: 'wrap',
                       }}
                     >
-                      <a
-                        href={`/admin-users/${admin.id}/permissions`}
-                        style={{
-                          display: 'inline-block',
-                          padding: '6px 14px',
-                          backgroundColor: '#2563eb',
-                          color: '#fff',
-                          textDecoration: 'none',
-                          borderRadius: '6px',
-                          fontSize: '13px',
-                        }}
-                      >
-                        権限変更
-                      </a>
+                      {isSuperAdmin && (
+                        <a
+                          href={`/admin-users/${admin.id}/permissions`}
+                          style={{
+                            display: 'inline-block',
+                            padding: '6px 14px',
+                            backgroundColor: '#2563eb',
+                            color: '#fff',
+                            textDecoration: 'none',
+                            borderRadius: '6px',
+                            fontSize: '13px',
+                          }}
+                        >
+                          権限変更
+                        </a>
+                      )}
 
                       {admin.email !== currentEmail ? (
                         <button
