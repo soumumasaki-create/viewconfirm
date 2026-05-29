@@ -6,6 +6,14 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+function createInternalEmail(lastName: string, firstName: string) {
+  const lastRoman = encodeURIComponent(lastName).replace(/%/g, '').toLowerCase()
+  const firstRoman = encodeURIComponent(firstName).replace(/%/g, '').toLowerCase()
+  const uniqueSuffix = Date.now().toString()
+
+  return `${lastRoman}_${firstRoman}_${uniqueSuffix}@viewconfirm.internal`
+}
+
 export async function POST(req: Request) {
   const { lastName, firstName, company, affiliation } = await req.json()
 
@@ -16,27 +24,30 @@ export async function POST(req: Request) {
     )
   }
 
-  // 氏名ベースの内部メールアドレス生成
-  const lastRoman = encodeURIComponent(lastName).replace(/%/g, '').toLowerCase()
-  const firstRoman = encodeURIComponent(firstName).replace(/%/g, '').toLowerCase()
-  const email = `${lastRoman}_${firstRoman}@viewconfirm.internal`
-
-  // 既に同じ氏名が存在するか確認
-  const { data: existing } = await supabaseAdmin
+  const { data: existingEmployee, error: existingEmployeeError } = await supabaseAdmin
     .from('employees')
     .select('id')
     .eq('last_name', lastName)
     .eq('first_name', firstName)
-    .single()
+    .eq('company', company)
+    .maybeSingle()
 
-  if (existing) {
+  if (existingEmployeeError) {
     return NextResponse.json(
-      { error: '同じ氏名の社員が既に登録されています' },
+      { error: '既存社員の確認に失敗しました' },
       { status: 400 }
     )
   }
 
-  // Supabase Authにユーザー作成（初回パスワード1234）
+  if (existingEmployee) {
+    return NextResponse.json(
+      { error: '同じ氏名・会社の社員が既に登録されています' },
+      { status: 400 }
+    )
+  }
+
+  const email = createInternalEmail(lastName, firstName)
+
   const { error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password: '1234',
@@ -47,7 +58,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: authError.message }, { status: 400 })
   }
 
-  // employeesテーブルに登録
   const { error: dbError } = await supabaseAdmin
     .from('employees')
     .insert({

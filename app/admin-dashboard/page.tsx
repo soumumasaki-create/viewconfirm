@@ -82,9 +82,28 @@ export default function AdminDashboardPage() {
   const [sortMode, setSortMode] = useState<'unwatched_desc' | 'name_asc' | 'company_affiliation_name'>(
     'unwatched_desc'
   )
+  const [canDownloadCsv, setCanDownloadCsv] = useState(false)
 
   useEffect(() => {
     const fetchAll = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      const loginEmail = user?.email || ''
+
+      if (loginEmail) {
+        const { data: currentAdmin } = await supabase
+          .from('admins')
+          .select('can_download_csv')
+          .eq('email', loginEmail)
+          .maybeSingle()
+
+        setCanDownloadCsv(!!currentAdmin?.can_download_csv)
+      } else {
+        setCanDownloadCsv(false)
+      }
+
       const { data: co } = await supabase.from('companies').select('*').order('id')
       if (co) setCompanies(co)
 
@@ -216,6 +235,7 @@ export default function AdminDashboardPage() {
   }
 
   const handleCSV = () => {
+    if (!canDownloadCsv) return
     if (!selectedChannelId) return
 
     const rows = [[
@@ -644,22 +664,24 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <button
-                onClick={handleCSV}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#16a34a',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  minHeight: '52px',
-                }}
-              >
-                📥 CSVダウンロード
-              </button>
+              {canDownloadCsv && (
+                <button
+                  onClick={handleCSV}
+                  style={{
+                    padding: '10px 20px',
+                    backgroundColor: '#16a34a',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    minHeight: '52px',
+                  }}
+                >
+                  📥 CSVダウンロード
+                </button>
+              )}
             </div>
 
             <div
