@@ -93,6 +93,11 @@ export default function AdminUsersPage() {
   }
 
   const handleDelete = async (id: number, targetEmail: string) => {
+    if (!isSuperAdmin) {
+      alert('削除できるのはスーパー管理者だけです')
+      return
+    }
+
     if (targetEmail === currentEmail) {
       alert('自分自身は削除できません')
       return
@@ -406,21 +411,25 @@ export default function AdminUsersPage() {
                         </a>
                       )}
 
-                      {admin.email !== currentEmail ? (
-                        <button
-                          onClick={() => handleDelete(admin.id, admin.email)}
-                          style={{
-                            padding: '6px 14px',
-                            backgroundColor: '#ef4444',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '13px',
-                          }}
-                        >
-                          削除
-                        </button>
+                      {isSuperAdmin ? (
+                        admin.email !== currentEmail ? (
+                          <button
+                            onClick={() => handleDelete(admin.id, admin.email)}
+                            style={{
+                              padding: '6px 14px',
+                              backgroundColor: '#ef4444',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                            }}
+                          >
+                            削除
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '13px', color: '#94a3b8', padding: '6px 0' }}>-</span>
+                        )
                       ) : (
                         <span style={{ fontSize: '13px', color: '#94a3b8', padding: '6px 0' }}>-</span>
                       )}

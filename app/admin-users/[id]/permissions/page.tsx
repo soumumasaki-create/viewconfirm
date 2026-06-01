@@ -19,11 +19,36 @@ type Admin = {
   can_receive_security_mail: boolean
 }
 
+type PermissionSnapshot = {
+  is_super_admin: boolean
+  can_view_all_companies: boolean
+  can_view_own_company: boolean
+  can_download_csv: boolean
+  can_manage_admin_permissions: boolean
+  can_reset_password: boolean
+  can_unlock_account: boolean
+  can_receive_security_mail: boolean
+}
+
+function buildPermissionSnapshot(admin: Admin): PermissionSnapshot {
+  return {
+    is_super_admin: admin.is_super_admin,
+    can_view_all_companies: admin.can_view_all_companies,
+    can_view_own_company: admin.can_view_own_company,
+    can_download_csv: admin.can_download_csv,
+    can_manage_admin_permissions: admin.can_manage_admin_permissions,
+    can_reset_password: admin.can_reset_password,
+    can_unlock_account: admin.can_unlock_account,
+    can_receive_security_mail: admin.can_receive_security_mail,
+  }
+}
+
 export default function AdminPermissionPage() {
   const params = useParams()
   const adminId = Array.isArray(params.id) ? params.id[0] : params.id
 
   const [admin, setAdmin] = useState<Admin | null>(null)
+  const [originalAdmin, setOriginalAdmin] = useState<Admin | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -31,12 +56,14 @@ export default function AdminPermissionPage() {
   const [permissionChecked, setPermissionChecked] = useState(false)
   const [isSelfTarget, setIsSelfTarget] = useState(false)
   const [superAdminCount, setSuperAdminCount] = useState(0)
+  const [loginEmail, setLoginEmail] = useState('')
 
   useEffect(() => {
     const fetchAdmin = async () => {
       if (!adminId) {
         setMessage('管理者IDを取得できませんでした')
         setAdmin(null)
+        setOriginalAdmin(null)
         setLoading(false)
         setPermissionChecked(true)
         return
@@ -47,10 +74,12 @@ export default function AdminPermissionPage() {
       } = await supabase.auth.getUser()
 
       const currentLoginEmail = user?.email || ''
+      setLoginEmail(currentLoginEmail)
 
       if (!currentLoginEmail) {
         setMessage('ログイン情報を確認できませんでした')
         setAdmin(null)
+        setOriginalAdmin(null)
         setLoading(false)
         setPermissionChecked(true)
         return
@@ -58,19 +87,16 @@ export default function AdminPermissionPage() {
 
       const { data: currentAdmin, error: currentAdminError } = await supabase
         .from('admins')
-        .select('can_manage_admin_permissions, is_super_admin')
+        .select('is_super_admin')
         .eq('email', currentLoginEmail)
         .maybeSingle()
 
-      if (
-        currentAdminError ||
-        !currentAdmin ||
-        (!currentAdmin.can_manage_admin_permissions && !currentAdmin.is_super_admin)
-      ) {
+      if (currentAdminError || !currentAdmin || !currentAdmin.is_super_admin) {
         setHasPermission(false)
         setPermissionChecked(true)
         setMessage('このページを開く権限がありません')
         setAdmin(null)
+        setOriginalAdmin(null)
         setLoading(false)
         return
       }
@@ -98,13 +124,16 @@ export default function AdminPermissionPage() {
       if (error || !data) {
         setMessage('管理者情報を取得できませんでした')
         setAdmin(null)
+        setOriginalAdmin(null)
         setLoading(false)
         return
       }
 
-      setAdmin(data as Admin)
+      const loadedAdmin = data as Admin
+      setAdmin(loadedAdmin)
+      setOriginalAdmin(loadedAdmin)
 
-      if (data.email === currentLoginEmail) {
+      if (loadedAdmin.email === currentLoginEmail) {
         setIsSelfTarget(true)
         setMessage('自分自身の権限は変更できません')
       } else {
@@ -156,8 +185,30 @@ export default function AdminPermissionPage() {
     })
   }
 
+  const writePermissionLog = async (beforeAdmin: Admin, afterAdmin: Admin) => {
+    const beforeSnapshot = buildPermissionSnapshot(beforeAdmin)
+    const afterSnapshot = buildPermissionSnapshot(afterAdmin)
+
+    try {
+      await supabase.from('admin_action_logs').insert({
+        actor_email: loginEmail,
+        target_admin_id: afterAdmin.id,
+        target_admin_email: afterAdmin.email,
+        target_admin_name: afterAdmin.name || '',
+        action_type: 'permission_update',
+        details: {
+          before: beforeSnapshot,
+          after: afterSnapshot,
+        },
+        created_at: new Date().toISOString(),
+      })
+    } catch {
+      // 履歴テーブル未作成時でも権限保存自体は止めない
+    }
+  }
+
   const handleSave = async () => {
-    if (!admin || isSelfTarget) return
+    if (!admin || !originalAdmin || isSelfTarget) return
 
     if (!admin.is_super_admin && superAdminCount <= 1) {
       setMessage('最後の1人のスーパー管理者は解除できません')
@@ -184,21 +235,29 @@ export default function AdminPermissionPage() {
 
     if (error) {
       setMessage('❌ 保存に失敗しました')
-    } else if (!data || data.length === 0) {
-      setMessage('❌ 保存できませんでした（更新対象が見つかりません）')
-    } else {
-      setMessage('✅ 権限を保存しました')
-
-      const { data: superAdminsAfterSave, error: superAdminCountErrorAfterSave } = await supabase
-        .from('admins')
-        .select('id')
-        .eq('is_super_admin', true)
-
-      if (!superAdminCountErrorAfterSave && superAdminsAfterSave) {
-        setSuperAdminCount(superAdminsAfterSave.length)
-      }
+      setSaving(false)
+      return
     }
 
+    if (!data || data.length === 0) {
+      setMessage('❌ 保存できませんでした（更新対象が見つかりません）')
+      setSaving(false)
+      return
+    }
+
+    await writePermissionLog(originalAdmin, admin)
+
+    const { data: superAdminsAfterSave, error: superAdminCountErrorAfterSave } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('is_super_admin', true)
+
+    if (!superAdminCountErrorAfterSave && superAdminsAfterSave) {
+      setSuperAdminCount(superAdminsAfterSave.length)
+    }
+
+    setOriginalAdmin(admin)
+    setMessage('✅ 権限を保存しました')
     setSaving(false)
   }
 
