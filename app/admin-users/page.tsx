@@ -92,20 +92,52 @@ export default function AdminUsersPage() {
     setLoading(false)
   }
 
-  const handleDelete = async (id: number, targetEmail: string) => {
+  const writeDeleteLog = async (targetAdmin: Admin) => {
+    try {
+      await supabase.from('admin_action_logs').insert({
+        actor_email: currentEmail,
+        target_admin_id: targetAdmin.id,
+        target_admin_email: targetAdmin.email,
+        target_admin_name: targetAdmin.name || '',
+        action_type: 'admin_delete',
+        details: {
+          deleted_admin: {
+            id: targetAdmin.id,
+            email: targetAdmin.email,
+            name: targetAdmin.name || '',
+            company: targetAdmin.company || '',
+            is_super_admin: targetAdmin.is_super_admin,
+            can_view_all_companies: targetAdmin.can_view_all_companies,
+            can_view_own_company: targetAdmin.can_view_own_company,
+            can_download_csv: targetAdmin.can_download_csv,
+            can_manage_admin_permissions: targetAdmin.can_manage_admin_permissions,
+            can_reset_password: targetAdmin.can_reset_password,
+            can_unlock_account: targetAdmin.can_unlock_account,
+            can_receive_security_mail: targetAdmin.can_receive_security_mail,
+          },
+        },
+        created_at: new Date().toISOString(),
+      })
+    } catch {
+      // 履歴保存に失敗しても削除自体は止めない
+    }
+  }
+
+  const handleDelete = async (targetAdmin: Admin) => {
     if (!isSuperAdmin) {
       alert('削除できるのはスーパー管理者だけです')
       return
     }
 
-    if (targetEmail === currentEmail) {
+    if (targetAdmin.email === currentEmail) {
       alert('自分自身は削除できません')
       return
     }
 
-    if (!confirm(targetEmail + ' を管理者から削除しますか？')) return
+    if (!confirm(targetAdmin.email + ' を管理者から削除しますか？')) return
 
-    await supabase.from('admins').delete().eq('id', id)
+    await writeDeleteLog(targetAdmin)
+    await supabase.from('admins').delete().eq('id', targetAdmin.id)
     await fetchAdmins()
   }
 
@@ -414,7 +446,7 @@ export default function AdminUsersPage() {
                       {isSuperAdmin ? (
                         admin.email !== currentEmail ? (
                           <button
-                            onClick={() => handleDelete(admin.id, admin.email)}
+                            onClick={() => handleDelete(admin)}
                             style={{
                               padding: '6px 14px',
                               backgroundColor: '#ef4444',
