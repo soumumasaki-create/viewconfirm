@@ -1,12 +1,52 @@
 'use client'
-import { useState } from 'react'
+
+import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('')
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    const checkPasswordRecovery = async () => {
+      const url = new URL(window.location.href)
+      const isResetUrl =
+        url.searchParams.get('reset') === '1' ||
+        url.searchParams.get('type') === 'recovery' ||
+        window.location.hash.includes('type=recovery') ||
+        window.location.hash.includes('access_token')
+
+      if (isResetUrl) {
+        setIsPasswordRecovery(true)
+        setMessage('新しいパスワードを入力してください。')
+      }
+
+      const { data } = await supabase.auth.getSession()
+      if (data.session && isResetUrl) {
+        setIsPasswordRecovery(true)
+      }
+    }
+
+    checkPasswordRecovery()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true)
+        setMessage('新しいパスワードを入力してください。')
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const handleLogin = async () => {
     setError('')
@@ -33,7 +73,7 @@ export default function LoginPage() {
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
+      redirectTo: `${window.location.origin}/login?reset=1`,
     })
 
     if (error) {
@@ -42,6 +82,51 @@ export default function LoginPage() {
     }
 
     setMessage('パスワード再設定メールを送信しました。メールをご確認ください。')
+  }
+
+  const handleUpdatePassword = async () => {
+    setError('')
+    setMessage('')
+
+    if (!newPassword.trim()) {
+      setError('新しいパスワードを入力してください')
+      return
+    }
+
+    if (newPassword.length < 8) {
+      setError('新しいパスワードは8文字以上で入力してください')
+      return
+    }
+
+    if (newPassword !== newPasswordConfirm) {
+      setError('確認用パスワードが一致しません')
+      return
+    }
+
+    const { data } = await supabase.auth.getSession()
+
+    if (!data.session) {
+      setError('再設定の有効期限が切れています。もう一度、再設定メールを送信してください。')
+      return
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    })
+
+    if (error) {
+      setError('パスワードを更新できませんでした。もう一度お試しください。')
+      return
+    }
+
+    setNewPassword('')
+    setNewPasswordConfirm('')
+    setIsPasswordRecovery(false)
+    setMessage('パスワードを更新しました。新しいパスワードでログインしてください。')
+
+    await supabase.auth.signOut()
+
+    window.history.replaceState({}, document.title, '/login')
   }
 
   return (
@@ -128,7 +213,7 @@ export default function LoginPage() {
               textAlign: 'center',
             }}
           >
-            ログイン
+            {isPasswordRecovery ? 'パスワード再設定' : 'ログイン'}
           </h2>
 
           <p
@@ -143,111 +228,230 @@ export default function LoginPage() {
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label
-                style={{
-                  fontSize: '13px',
-                  color: '#475569',
-                  marginBottom: '6px',
-                  display: 'block',
-                }}
-              >
-                メールアドレス
-              </label>
-              <input
-                type="email"
-                placeholder="example@mirai.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '11px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '15px',
-                  color: '#0f172a',
-                  backgroundColor: '#f8fafc',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
+            {isPasswordRecovery ? (
+              <>
+                <div>
+                  <label
+                    style={{
+                      fontSize: '13px',
+                      color: '#475569',
+                      marginBottom: '6px',
+                      display: 'block',
+                    }}
+                  >
+                    新しいパスワード
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="8文字以上で入力"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '11px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '15px',
+                      color: '#0f172a',
+                      backgroundColor: '#f8fafc',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
 
-            <div>
-              <label
-                style={{
-                  fontSize: '13px',
-                  color: '#475569',
-                  marginBottom: '6px',
-                  display: 'block',
-                }}
-              >
-                パスワード
-              </label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '11px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '15px',
-                  color: '#0f172a',
-                  backgroundColor: '#f8fafc',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
+                <div>
+                  <label
+                    style={{
+                      fontSize: '13px',
+                      color: '#475569',
+                      marginBottom: '6px',
+                      display: 'block',
+                    }}
+                  >
+                    新しいパスワード確認
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="もう一度入力"
+                    value={newPasswordConfirm}
+                    onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '11px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '15px',
+                      color: '#0f172a',
+                      backgroundColor: '#f8fafc',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
 
-            {error && (
-              <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', margin: 0 }}>
-                {error}
-              </p>
+                {error && (
+                  <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', margin: 0 }}>
+                    {error}
+                  </p>
+                )}
+
+                {message && (
+                  <p style={{ color: '#16a34a', fontSize: '13px', textAlign: 'center', margin: 0 }}>
+                    {message}
+                  </p>
+                )}
+
+                <button
+                  onClick={handleUpdatePassword}
+                  type="button"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    backgroundColor: '#1e3a5f',
+                    color: '#fff',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '15px',
+                    fontWeight: 'bold',
+                    marginTop: '8px',
+                  }}
+                >
+                  パスワードを更新する
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsPasswordRecovery(false)
+                    setError('')
+                    setMessage('')
+                    window.history.replaceState({}, document.title, '/login')
+                  }}
+                  type="button"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    backgroundColor: '#fff',
+                    color: '#1e3a5f',
+                    border: '1px solid #cbd5e1',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  ログイン画面に戻る
+                </button>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label
+                    style={{
+                      fontSize: '13px',
+                      color: '#475569',
+                      marginBottom: '6px',
+                      display: 'block',
+                    }}
+                  >
+                    メールアドレス
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="example@mirai.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '11px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '15px',
+                      color: '#0f172a',
+                      backgroundColor: '#f8fafc',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      fontSize: '13px',
+                      color: '#475569',
+                      marginBottom: '6px',
+                      display: 'block',
+                    }}
+                  >
+                    パスワード
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '11px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '15px',
+                      color: '#0f172a',
+                      backgroundColor: '#f8fafc',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                {error && (
+                  <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', margin: 0 }}>
+                    {error}
+                  </p>
+                )}
+
+                {message && (
+                  <p style={{ color: '#16a34a', fontSize: '13px', textAlign: 'center', margin: 0 }}>
+                    {message}
+                  </p>
+                )}
+
+                <button
+                  onClick={handleLogin}
+                  type="button"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    backgroundColor: '#1e3a5f',
+                    color: '#fff',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '15px',
+                    fontWeight: 'bold',
+                    marginTop: '8px',
+                  }}
+                >
+                  ログイン
+                </button>
+
+                <button
+                  onClick={handleResetPassword}
+                  type="button"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    backgroundColor: '#fff',
+                    color: '#1e3a5f',
+                    border: '1px solid #cbd5e1',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  パスワードをお忘れの場合
+                </button>
+              </>
             )}
-
-            {message && (
-              <p style={{ color: '#16a34a', fontSize: '13px', textAlign: 'center', margin: 0 }}>
-                {message}
-              </p>
-            )}
-
-            <button
-              onClick={handleLogin}
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                backgroundColor: '#1e3a5f',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '15px',
-                fontWeight: 'bold',
-                marginTop: '8px',
-              }}
-            >
-              ログイン
-            </button>
-
-            <button
-              onClick={handleResetPassword}
-              type="button"
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                backgroundColor: '#fff',
-                color: '#1e3a5f',
-                border: '1px solid #cbd5e1',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold',
-              }}
-            >
-              パスワードをお忘れの場合
-            </button>
           </div>
         </div>
       </div>
