@@ -9,6 +9,9 @@ export default function LoginPage() {
   const [newPassword, setNewPassword] = useState('')
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('')
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showNewPasswordConfirm, setShowNewPasswordConfirm] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
@@ -121,12 +124,61 @@ export default function LoginPage() {
 
     setNewPassword('')
     setNewPasswordConfirm('')
+    setShowNewPassword(false)
+    setShowNewPasswordConfirm(false)
     setIsPasswordRecovery(false)
     setMessage('パスワードを更新しました。新しいパスワードでログインしてください。')
 
     await supabase.auth.signOut()
 
     window.history.replaceState({}, document.title, '/login')
+  }
+
+  const normalInputStyle = {
+    width: '100%',
+    padding: '11px 14px',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
+    fontSize: '15px',
+    color: '#0f172a',
+    backgroundColor: '#f8fafc',
+    boxSizing: 'border-box' as const,
+  }
+
+  const passwordInputWrapperStyle = {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
+    backgroundColor: '#f8fafc',
+    overflow: 'hidden',
+    boxSizing: 'border-box' as const,
+  }
+
+  const passwordInputStyle = {
+    flex: 1,
+    minWidth: 0,
+    padding: '11px 14px',
+    border: 'none',
+    outline: 'none',
+    fontSize: '15px',
+    color: '#0f172a',
+    backgroundColor: '#f8fafc',
+    boxSizing: 'border-box' as const,
+  }
+
+  const showButtonStyle = {
+    width: '64px',
+    flexShrink: 0,
+    height: '43px',
+    border: 'none',
+    borderLeft: '1px solid #cbd5e1',
+    backgroundColor: '#ffffff',
+    color: '#1e3a5f',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: 'bold' as const,
   }
 
   return (
@@ -241,22 +293,22 @@ export default function LoginPage() {
                   >
                     新しいパスワード
                   </label>
-                  <input
-                    type="password"
-                    placeholder="8文字以上で入力"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '11px 14px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '15px',
-                      color: '#0f172a',
-                      backgroundColor: '#f8fafc',
-                      boxSizing: 'border-box',
-                    }}
-                  />
+                  <div style={passwordInputWrapperStyle}>
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      placeholder="8文字以上で入力"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      style={passwordInputStyle}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      style={showButtonStyle}
+                    >
+                      {showNewPassword ? '非表示' : '表示'}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -270,22 +322,22 @@ export default function LoginPage() {
                   >
                     新しいパスワード確認
                   </label>
-                  <input
-                    type="password"
-                    placeholder="もう一度入力"
-                    value={newPasswordConfirm}
-                    onChange={(e) => setNewPasswordConfirm(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '11px 14px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '15px',
-                      color: '#0f172a',
-                      backgroundColor: '#f8fafc',
-                      boxSizing: 'border-box',
-                    }}
-                  />
+                  <div style={passwordInputWrapperStyle}>
+                    <input
+                      type={showNewPasswordConfirm ? 'text' : 'password'}
+                      placeholder="もう一度入力"
+                      value={newPasswordConfirm}
+                      onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                      style={passwordInputStyle}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPasswordConfirm(!showNewPasswordConfirm)}
+                      style={showButtonStyle}
+                    >
+                      {showNewPasswordConfirm ? '非表示' : '表示'}
+                    </button>
+                  </div>
                 </div>
 
                 {error && (
@@ -324,6 +376,8 @@ export default function LoginPage() {
                     setIsPasswordRecovery(false)
                     setError('')
                     setMessage('')
+                    setShowNewPassword(false)
+                    setShowNewPasswordConfirm(false)
                     window.history.replaceState({}, document.title, '/login')
                   }}
                   type="button"
@@ -360,16 +414,7 @@ export default function LoginPage() {
                     placeholder="example@mirai.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '11px 14px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '15px',
-                      color: '#0f172a',
-                      backgroundColor: '#f8fafc',
-                      boxSizing: 'border-box',
-                    }}
+                    style={normalInputStyle}
                   />
                 </div>
 
@@ -384,22 +429,22 @@ export default function LoginPage() {
                   >
                     パスワード
                   </label>
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '11px 14px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '15px',
-                      color: '#0f172a',
-                      backgroundColor: '#f8fafc',
-                      boxSizing: 'border-box',
-                    }}
-                  />
+                  <div style={passwordInputWrapperStyle}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      style={passwordInputStyle}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={showButtonStyle}
+                    >
+                      {showPassword ? '非表示' : '表示'}
+                    </button>
+                  </div>
                 </div>
 
                 {error && (
