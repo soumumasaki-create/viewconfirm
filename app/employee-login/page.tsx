@@ -9,6 +9,8 @@ type EmployeeLoginInfo = {
   company: string | null
   affiliation: string | null
   is_active: boolean | null
+  employee_password: string | null
+  must_change_password: boolean | null
 }
 
 export default function EmployeeLoginPage() {
@@ -38,7 +40,9 @@ export default function EmployeeLoginPage() {
 
     const { data, error } = await supabase
       .from('employees')
-      .select('id, last_name, first_name, company, affiliation, is_active')
+      .select(
+        'id, last_name, first_name, company, affiliation, is_active, employee_password, must_change_password'
+      )
       .eq('last_name', normalizedLastName)
       .eq('first_name', normalizedFirstName)
       .limit(1)
@@ -82,6 +86,20 @@ export default function EmployeeLoginPage() {
     } else {
       clearEmployeeInfo()
     }
+  }
+
+  const saveEmployeeToLocalStorage = (employee: EmployeeLoginInfo) => {
+    localStorage.setItem(
+      'viewconfirm_employee',
+      JSON.stringify({
+        id: employee.id,
+        last_name: employee.last_name,
+        first_name: employee.first_name,
+        company: employee.company || '',
+        affiliation: employee.affiliation || '',
+        must_change_password: employee.must_change_password === true,
+      })
+    )
   }
 
   const handleLogin = async () => {
@@ -128,7 +146,9 @@ export default function EmployeeLoginPage() {
       return
     }
 
-    if (normalizedPassword !== '1234') {
+    const registeredPassword = String(employee.employee_password || '1234').trim()
+
+    if (normalizedPassword !== registeredPassword) {
       setError('パスワードが正しくありません。')
       setLoading(false)
       return
@@ -140,16 +160,12 @@ export default function EmployeeLoginPage() {
       affiliation: employee.affiliation || '',
     })
 
-    localStorage.setItem(
-      'viewconfirm_employee',
-      JSON.stringify({
-        id: employee.id,
-        last_name: employee.last_name,
-        first_name: employee.first_name,
-        company: employee.company || '',
-        affiliation: employee.affiliation || '',
-      })
-    )
+    saveEmployeeToLocalStorage(employee)
+
+    if (employee.must_change_password === true) {
+      window.location.href = '/employee-change-password'
+      return
+    }
 
     window.location.href = '/watch'
   }
