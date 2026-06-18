@@ -98,6 +98,54 @@ export default function AdminEmployeesPage() {
     return new Set(employees.map((emp) => (emp.employee_code || '').trim()).filter(Boolean))
   }, [employees])
 
+  const csvEscape = (value: string | number | boolean | null | undefined) => {
+    const text = value === null || value === undefined ? '' : String(value)
+    const escaped = text.replace(/"/g, '""')
+    return `"${escaped}"`
+  }
+
+  const downloadCsv = (fileName: string, rows: string[][]) => {
+    const csvText = rows.map((row) => row.map((value) => csvEscape(value)).join(',')).join('\r\n')
+    const bom = '\uFEFF'
+    const blob = new Blob([bom + csvText], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    URL.revokeObjectURL(url)
+  }
+
+  const handleDownloadTemplate = () => {
+    downloadCsv('viewconfirm_employee_import_template.csv', [
+      ['社員番号', '会社名', '所属・職種', '氏名', '利用可否', '取込結果メモ'],
+      ['TK001', '高見起業', 'ドライバー', '山田 太郎', '有効', '例：この列はアプリでは読み込まない'],
+      ['TH001', 'タイホー荷役', 'リフトオペレーター', '佐藤 花子', '有効', ''],
+      ['MS001', 'みらい', '管理職', '鈴木 一郎', '有効', ''],
+      ['TK002', '高見起業', 'リフトオペレーター', 'リフト 乗る太郎', '有効', ''],
+    ])
+  }
+
+  const handleDownloadEmployees = () => {
+    const rows = [
+      ['社員番号', '会社名', '所属・職種', '氏名', '利用可否', '取込結果メモ'],
+      ...employees.map((emp) => [
+        emp.employee_code || '',
+        emp.company || '',
+        emp.affiliation || '',
+        `${emp.last_name || ''} ${emp.first_name || ''}`.trim(),
+        emp.is_active === false ? '無効' : '有効',
+        '',
+      ]),
+    ]
+
+    downloadCsv('viewconfirm_employees.csv', rows)
+  }
+
   const handleSubmit = async () => {
     if (!lastName || !firstName || !company || !affiliation) {
       setMessage('❌ 姓・名・会社名・所属をすべて入力してください')
@@ -493,6 +541,40 @@ export default function AdminEmployeesPage() {
           </p>
 
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
+            <button
+              onClick={handleDownloadTemplate}
+              type="button"
+              style={{
+                padding: '10px 18px',
+                backgroundColor: '#0f766e',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+              }}
+            >
+              CSVひな形をダウンロード
+            </button>
+
+            <button
+              onClick={handleDownloadEmployees}
+              type="button"
+              style={{
+                padding: '10px 18px',
+                backgroundColor: '#7c3aed',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+              }}
+            >
+              社員一覧CSVをダウンロード
+            </button>
+
             <label
               style={{
                 display: 'inline-block',
