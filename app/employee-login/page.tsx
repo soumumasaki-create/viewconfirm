@@ -2,39 +2,94 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
+type EmployeeLoginInfo = {
+  id: number
+  last_name: string
+  first_name: string
+  company: string | null
+  affiliation: string | null
+  is_active: boolean | null
+}
+
 export default function EmployeeLoginPage() {
   const [lastName, setLastName] = useState('')
   const [firstName, setFirstName] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeLoginInfo | null>(null)
   const [employeeInfo, setEmployeeInfo] = useState<{ company: string; affiliation: string } | null>(null)
 
+  const normalizeName = (value: string) => {
+    return String(value || '')
+      .replace(/\u3000/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
+  const findEmployee = async (nextLastName: string, nextFirstName: string) => {
+    const normalizedLastName = normalizeName(nextLastName)
+    const normalizedFirstName = normalizeName(nextFirstName)
+
+    if (!normalizedLastName || !normalizedFirstName) {
+      return { employee: null, error: null }
+    }
+
+    const { data, error } = await supabase
+      .from('employees')
+      .select('id, last_name, first_name, company, affiliation, is_active')
+      .eq('last_name', normalizedLastName)
+      .eq('first_name', normalizedFirstName)
+      .limit(1)
+
+    if (error) {
+      return { employee: null, error }
+    }
+
+    const employee = Array.isArray(data) && data.length > 0 ? data[0] : null
+
+    return {
+      employee: employee as EmployeeLoginInfo | null,
+      error: null,
+    }
+  }
+
+  const clearEmployeeInfo = () => {
+    setSelectedEmployee(null)
+    setEmployeeInfo(null)
+  }
+
   const handleNameLookup = async (nextLastName: string, nextFirstName: string) => {
-    if (!nextLastName || !nextFirstName) {
-      setEmployeeInfo(null)
+    setError('')
+
+    const normalizedLastName = normalizeName(nextLastName)
+    const normalizedFirstName = normalizeName(nextFirstName)
+
+    if (!normalizedLastName || !normalizedFirstName) {
+      clearEmployeeInfo()
       return
     }
 
-    const { data: emp } = await supabase
-      .from('employees')
-      .select('company, affiliation')
-      .eq('last_name', nextLastName)
-      .eq('first_name', nextFirstName)
-      .maybeSingle()
+    const { employee } = await findEmployee(normalizedLastName, normalizedFirstName)
 
-    if (emp) {
+    if (employee) {
+      setSelectedEmployee(employee)
       setEmployeeInfo({
-        company: emp.company || '',
-        affiliation: emp.affiliation || '',
+        company: employee.company || '',
+        affiliation: employee.affiliation || '',
       })
     } else {
-      setEmployeeInfo(null)
+      clearEmployeeInfo()
     }
   }
 
   const handleLogin = async () => {
-    if (!lastName || !firstName || !password) {
+    const normalizedLastName = normalizeName(lastName)
+    const normalizedFirstName = normalizeName(firstName)
+    const normalizedPassword = String(password || '').trim()
+
+    if (!normalizedLastName || !normalizedFirstName || !normalizedPassword) {
       setError('姓・名・パスワードを入力してください')
       return
     }
@@ -42,34 +97,59 @@ export default function EmployeeLoginPage() {
     setLoading(true)
     setError('')
 
-    const { data: emp, error: empError } = await supabase
-      .from('employees')
-      .select('email, company, affiliation')
-      .eq('last_name', lastName)
-      .eq('first_name', firstName)
-      .single()
+    let employee = selectedEmployee
 
-    if (empError || !emp?.email) {
+    const selectedEmployeeMatches =
+      employee &&
+      normalizeName(employee.last_name) === normalizedLastName &&
+      normalizeName(employee.first_name) === normalizedFirstName
+
+    if (!selectedEmployeeMatches) {
+      const result = await findEmployee(normalizedLastName, normalizedFirstName)
+
+      if (result.error) {
+        setError('社員情報の確認中にエラーが発生しました。管理者に確認してください。')
+        setLoading(false)
+        return
+      }
+
+      employee = result.employee
+    }
+
+    if (!employee) {
       setError('氏名が正しくありません。管理者に登録を依頼してください。')
       setLoading(false)
       return
     }
 
-    setEmployeeInfo({
-      company: emp.company || '',
-      affiliation: emp.affiliation || '',
-    })
+    if (employee.is_active === false) {
+      setError('この社員は現在利用できません。管理者に確認してください。')
+      setLoading(false)
+      return
+    }
 
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email: emp.email,
-      password,
-    })
-
-    if (loginError) {
+    if (normalizedPassword !== '1234') {
       setError('パスワードが正しくありません。')
       setLoading(false)
       return
     }
+
+    setSelectedEmployee(employee)
+    setEmployeeInfo({
+      company: employee.company || '',
+      affiliation: employee.affiliation || '',
+    })
+
+    localStorage.setItem(
+      'viewconfirm_employee',
+      JSON.stringify({
+        id: employee.id,
+        last_name: employee.last_name,
+        first_name: employee.first_name,
+        company: employee.company || '',
+        affiliation: employee.affiliation || '',
+      })
+    )
 
     window.location.href = '/watch'
   }
@@ -258,61 +338,45 @@ export default function EmployeeLoginPage() {
             </div>
           </div>
 
-          <div
-            style={{
-              backgroundColor: employeeInfo ? '#f0fdf4' : '#f8fafc',
-              border: employeeInfo ? '1px solid #86efac' : '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '16px',
-              marginBottom: '20px',
-            }}
-          >
+          {employeeInfo && (
             <div
               style={{
-                fontSize: '12px',
-                color: employeeInfo ? '#166534' : '#64748b',
-                marginBottom: '8px',
-                fontWeight: '700',
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                color: '#166534',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                marginBottom: '18px',
+                fontSize: '13px',
+                lineHeight: '1.7',
               }}
             >
-              登録情報
+              <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>登録情報</div>
+              <div
+                style={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  marginBottom: '8px',
+                }}
+              >
+                会社：{employeeInfo.company || '-'}
+              </div>
+              <div
+                style={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                }}
+              >
+                所属：{employeeInfo.affiliation || '-'}
+              </div>
             </div>
+          )}
 
-            {employeeInfo ? (
-              <div style={{ display: 'grid', gap: '8px' }}>
-                <div
-                  style={{
-                    fontSize: '13px',
-                    color: '#166534',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #bbf7d0',
-                    borderRadius: '8px',
-                    padding: '10px 12px',
-                  }}
-                >
-                  会社：{employeeInfo.company || '-'}
-                </div>
-                <div
-                  style={{
-                    fontSize: '13px',
-                    color: '#166534',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #bbf7d0',
-                    borderRadius: '8px',
-                    padding: '10px 12px',
-                  }}
-                >
-                  所属：{employeeInfo.affiliation || '-'}
-                </div>
-              </div>
-            ) : (
-              <div style={{ fontSize: '13px', color: '#94a3b8', lineHeight: '1.7' }}>
-                氏名を入力すると、登録されている会社名・所属がここに表示されます
-              </div>
-            )}
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '18px' }}>
             <label
               style={{
                 fontSize: '13px',
@@ -324,38 +388,72 @@ export default function EmployeeLoginPage() {
             >
               パスワード
             </label>
-            <input
-              type="password"
-              placeholder="パスワードを入力"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+
+            <div
               style={{
+                display: 'flex',
                 width: '100%',
-                padding: '12px 14px',
-                borderRadius: '10px',
                 border: '1px solid #cbd5e1',
-                fontSize: '15px',
-                color: '#0f172a',
+                borderRadius: '10px',
                 backgroundColor: '#f8fafc',
+                overflow: 'hidden',
                 boxSizing: 'border-box',
               }}
-            />
+            >
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="初期パスワード：1234"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleLogin()
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: '12px 14px',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '15px',
+                  color: '#0f172a',
+                  backgroundColor: 'transparent',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  width: '72px',
+                  flexShrink: 0,
+                  border: 'none',
+                  borderLeft: '1px solid #cbd5e1',
+                  backgroundColor: '#e2e8f0',
+                  color: '#334155',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                }}
+              >
+                {showPassword ? '非表示' : '表示'}
+              </button>
+            </div>
           </div>
 
           {error && (
             <div
               style={{
                 backgroundColor: '#fef2f2',
-                border: '1px solid #fca5a5',
-                borderRadius: '10px',
-                padding: '12px 16px',
-                marginBottom: '16px',
+                border: '1px solid #fecaca',
+                color: '#dc2626',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                marginBottom: '18px',
+                fontSize: '13px',
+                lineHeight: '1.6',
               }}
             >
-              <p style={{ color: '#ef4444', fontSize: '13px', margin: 0, lineHeight: '1.6' }}>
-                ❌ {error}
-              </p>
+              ❌ {error}
             </div>
           )}
 
@@ -365,33 +463,71 @@ export default function EmployeeLoginPage() {
             style={{
               width: '100%',
               padding: '14px',
-              backgroundColor: '#2563eb',
+              backgroundColor: loading ? '#94a3b8' : '#2563eb',
               color: '#fff',
               border: 'none',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              fontSize: '16px',
+              borderRadius: '12px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontSize: '15px',
               fontWeight: 'bold',
-              boxShadow: '0 6px 16px rgba(37, 99, 235, 0.22)',
             }}
           >
-            {loading ? 'ログイン中...' : 'ログイン'}
+            {loading ? '確認中...' : 'ログイン'}
           </button>
 
-          <div style={{ textAlign: 'center', marginTop: '14px' }}>
-            <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 10px 0' }}>
-              入力後、右の登録情報を確認してからログインしてください
-            </p>
-
-            <a href="/login" style={{ fontSize: '13px', color: '#64748b', textDecoration: 'none' }}>
-              管理者の方はこちら →
-            </a>
+          <div
+            style={{
+              textAlign: 'center',
+              marginTop: '14px',
+              color: '#94a3b8',
+              fontSize: '12px',
+              lineHeight: '1.7',
+            }}
+          >
+            入力後、上の登録情報を確認してからログインしてください
           </div>
+
+          <a
+            href="/"
+            style={{
+              display: 'block',
+              textAlign: 'center',
+              marginTop: '18px',
+              color: '#64748b',
+              fontSize: '13px',
+              textDecoration: 'none',
+            }}
+          >
+            トップに戻る
+          </a>
+
+          <a
+            href="/login"
+            style={{
+              display: 'block',
+              textAlign: 'center',
+              marginTop: '14px',
+              color: '#64748b',
+              fontSize: '13px',
+              textDecoration: 'none',
+            }}
+          >
+            管理者の方はこちら →
+          </a>
         </div>
       </div>
 
-      <footer style={{ borderTop: '1px solid #e2e8f0', padding: '20px 40px', textAlign: 'center' }}>
-        <p style={{ color: '#94a3b8', fontSize: '12px' }}>© 2026 MIRAI Group. ViewConfirm.</p>
+      <footer
+        style={{
+          borderTop: '1px solid #e2e8f0',
+          padding: '20px 40px',
+          textAlign: 'center',
+          backgroundColor: '#fff',
+        }}
+      >
+        <p style={{ color: '#94a3b8', fontSize: '12px', margin: 0 }}>
+          © 2026 MIRAI Group. ViewConfirm.
+        </p>
       </footer>
     </div>
   )
