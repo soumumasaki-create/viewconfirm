@@ -418,7 +418,7 @@ export default function EmployeeLoginPage() {
             >
               <input
                 type={showPassword ? 'text' : 'password'}
-                placeholder="初期パスワード：1234"
+                placeholder="パスワードを入力"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => {
@@ -502,34 +502,6 @@ export default function EmployeeLoginPage() {
           >
             入力後、上の登録情報を確認してからログインしてください
           </div>
-
-          <a
-            href="/"
-            style={{
-              display: 'block',
-              textAlign: 'center',
-              marginTop: '18px',
-              color: '#64748b',
-              fontSize: '13px',
-              textDecoration: 'none',
-            }}
-          >
-            トップに戻る
-          </a>
-
-          <a
-            href="/login"
-            style={{
-              display: 'block',
-              textAlign: 'center',
-              marginTop: '14px',
-              color: '#64748b',
-              fontSize: '13px',
-              textDecoration: 'none',
-            }}
-          >
-            管理者の方はこちら →
-          </a>
         </div>
       </div>
 

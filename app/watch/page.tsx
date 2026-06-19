@@ -77,6 +77,15 @@ type WatchLog = {
   user_name: string
 }
 
+type StoredEmployee = {
+  id: number
+  last_name: string
+  first_name: string
+  company: string
+  affiliation: string
+  must_change_password?: boolean
+}
+
 function getYouTubeVideoId(url: string): string | null {
   try {
     if (!url) return null
@@ -153,19 +162,13 @@ function includesTargetValue(list: string[] | null | undefined, value: string) {
   return list.includes(value)
 }
 
-function canViewChannel(
-  channel: Channel,
-  employeeCompany: string,
-  employeeAffiliation: string
-) {
+function canViewChannel(channel: Channel, employeeCompany: string, employeeAffiliation: string) {
   if (!channel.target_scope || channel.target_scope === 'all') return true
 
   const companies = channel.target_companies || []
   const affiliations = channel.target_affiliations || []
 
-  const companyMatched =
-    companies.length === 0 || includesTargetValue(companies, employeeCompany)
-
+  const companyMatched = companies.length === 0 || includesTargetValue(companies, employeeCompany)
   const affiliationMatched =
     affiliations.length === 0 || includesTargetValue(affiliations, employeeAffiliation)
 
@@ -338,6 +341,35 @@ export default function WatchPage() {
   }
 
   useEffect(() => {
+    const rawEmployee = localStorage.getItem('viewconfirm_employee')
+
+    if (!rawEmployee) {
+      window.location.href = '/employee-login'
+      return
+    }
+
+    try {
+      const employee = JSON.parse(rawEmployee) as StoredEmployee
+
+      if (!employee.id || !employee.last_name || !employee.first_name) {
+        localStorage.removeItem('viewconfirm_employee')
+        window.location.href = '/employee-login'
+        return
+      }
+
+      const fullName = `${employee.last_name} ${employee.first_name}`
+      setIsEmployee(true)
+      setLoginName(fullName)
+      setMyName(fullName)
+      setEmployeeCompany(employee.company || '')
+      setEmployeeAffiliation(employee.affiliation || '')
+    } catch {
+      localStorage.removeItem('viewconfirm_employee')
+      window.location.href = '/employee-login'
+    }
+  }, [])
+
+  useEffect(() => {
     const fetchData = async () => {
       const { data: ch } = await supabase.from('channels').select('*').order('id')
       if (ch) setChannels(ch as Channel[])
@@ -348,44 +380,23 @@ export default function WatchPage() {
       const { data: co } = await supabase.from('companies').select('*').order('id')
       if (co) setCompanies(co)
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (user?.email?.endsWith('@viewconfirm.internal')) {
-        setIsEmployee(true)
-
-        const { data: emp } = await supabase
-          .from('employees')
-          .select('last_name, first_name, company, affiliation')
-          .eq('email', user.email)
-          .single()
-
-        if (emp) {
-          const fullName = `${emp.last_name} ${emp.first_name}`
-          setLoginName(fullName)
-          setMyName(fullName)
-          setEmployeeCompany(emp.company || '')
-          setEmployeeAffiliation(emp.affiliation || '')
-
-          const { data: co2 } = await supabase
-            .from('companies')
-            .select('*')
-            .eq('name', emp.company)
-            .single()
-
-          if (co2) {
-            setCompanyId(String(co2.id))
-          }
-        }
-      }
-
       const { data: wl } = await supabase.from('watch_logs').select('episode_id, user_name')
       if (wl) setWatchLogs(wl)
     }
 
     fetchData()
   }, [])
+
+  useEffect(() => {
+    if (!employeeCompany) return
+
+    const setEmployeeCompanyId = async () => {
+      const { data: co } = await supabase.from('companies').select('*').eq('name', employeeCompany).single()
+      if (co) setCompanyId(String(co.id))
+    }
+
+    setEmployeeCompanyId()
+  }, [employeeCompany])
 
   useEffect(() => {
     const existingScript = document.querySelector(
@@ -491,11 +502,9 @@ export default function WatchPage() {
 
   const isEpisodeWatched = (episodeId: number) => {
     if (isEmployee && loginName) {
-      return watchLogs.some(
-        (w) => w.episode_id === episodeId && w.user_name === loginName
-      )
+      return watchLogs.some((w) => w.episode_id === episodeId && w.user_name === loginName)
     }
-    return watchLogs.some((w) => w.episode_id === episodeId)
+    return false
   }
 
   useEffect(() => {
@@ -702,11 +711,7 @@ export default function WatchPage() {
       return
     }
 
-    const waitSeconds =
-      ep.completion_seconds && ep.completion_seconds > 0
-        ? ep.completion_seconds
-        : 180
-
+    const waitSeconds = ep.completion_seconds && ep.completion_seconds > 0 ? ep.completion_seconds : 180
     const initialRemainingSeconds = loadSavedRemainingSeconds(ep.id, waitSeconds)
 
     setCanComplete(false)
@@ -716,6 +721,7 @@ export default function WatchPage() {
   }
 
   const handleLogout = async () => {
+    localStorage.removeItem('viewconfirm_employee')
     await supabase.auth.signOut()
     window.location.href = '/employee-login'
   }
@@ -723,7 +729,7 @@ export default function WatchPage() {
   const handleComplete = async () => {
     if (!selectedEpisode) return
 
-    const effectiveName = isEmployee ? (loginName || myName) : myName
+    const effectiveName = loginName || myName
     const effectiveCompanyId = companyId
 
     if (!effectiveName || !effectiveCompanyId) return
@@ -756,26 +762,18 @@ export default function WatchPage() {
     setLoading(false)
   }
 
-  const handleSubNameChange = (
-    index: number,
-    field: 'last' | 'first',
-    value: string
-  ) => {
+  const handleSubNameChange = (index: number, field: 'last' | 'first', value: string) => {
     const newNames = [...subNames]
     newNames[index][field] = value
     setSubNames(newNames)
   }
 
   const visibleChannels =
-    isEmployee && employeeCompany && employeeAffiliation
-      ? channels.filter((ch) =>
-          canViewChannel(ch, employeeCompany, employeeAffiliation)
-        )
-      : channels
+    employeeCompany && employeeAffiliation
+      ? channels.filter((ch) => canViewChannel(ch, employeeCompany, employeeAffiliation))
+      : []
 
-  const channelEpisodes = selectedChannel
-    ? episodes.filter((ep) => ep.channel_id === selectedChannel.id)
-    : []
+  const channelEpisodes = selectedChannel ? episodes.filter((ep) => ep.channel_id === selectedChannel.id) : []
 
   const renderMedia = () => {
     if (!selectedEpisode?.video_url || !selectedMedia) return null
@@ -905,9 +903,7 @@ export default function WatchPage() {
             VC
           </div>
           <div>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff' }}>
-              ViewConfirm
-            </div>
+            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff' }}>ViewConfirm</div>
             <div style={{ fontSize: '10px', color: '#93c5fd', letterSpacing: '0.1em' }}>
               MIRAI GROUP
             </div>
@@ -924,7 +920,7 @@ export default function WatchPage() {
             justifyContent: 'flex-end',
           }}
         >
-          {isEmployee && loginName && (
+          {loginName && (
             <div
               style={{
                 display: 'flex',
@@ -933,47 +929,32 @@ export default function WatchPage() {
                 gap: '2px',
               }}
             >
-              <span style={{ color: '#bfdbfe', fontSize: '13px', fontWeight: 'bold' }}>
-                {loginName}
-              </span>
+              <span style={{ color: '#bfdbfe', fontSize: '13px', fontWeight: 'bold' }}>{loginName}</span>
 
               {employeeCompany && (
-                <span style={{ color: '#e2e8f0', fontSize: '12px' }}>
-                  会社：{employeeCompany}
-                </span>
+                <span style={{ color: '#e2e8f0', fontSize: '12px' }}>会社：{employeeCompany}</span>
               )}
 
               {employeeAffiliation && (
-                <span style={{ color: '#e2e8f0', fontSize: '12px' }}>
-                  所属：{employeeAffiliation}
-                </span>
+                <span style={{ color: '#e2e8f0', fontSize: '12px' }}>所属：{employeeAffiliation}</span>
               )}
             </div>
           )}
 
-          {isEmployee ? (
-            <button
-              onClick={handleLogout}
-              style={{
-                padding: '7px 16px',
-                backgroundColor: 'transparent',
-                color: '#fff',
-                border: '1px solid #93c5fd',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '13px',
-              }}
-            >
-              ログアウト
-            </button>
-          ) : (
-            <a
-              href="/"
-              style={{ color: '#93c5fd', fontSize: '13px', textDecoration: 'none' }}
-            >
-              ← トップに戻る
-            </a>
-          )}
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: '7px 16px',
+              backgroundColor: 'transparent',
+              color: '#fff',
+              border: '1px solid #93c5fd',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '13px',
+            }}
+          >
+            ログアウト
+          </button>
         </div>
       </header>
 
@@ -1069,9 +1050,7 @@ export default function WatchPage() {
             </div>
 
             {visibleChannels.length === 0 && (
-              <p style={{ color: '#94a3b8', marginTop: '16px' }}>
-                表示できるチャンネルがありません
-              </p>
+              <p style={{ color: '#94a3b8', marginTop: '16px' }}>表示できるチャンネルがありません</p>
             )}
           </div>
         )}
@@ -1256,9 +1235,7 @@ export default function WatchPage() {
                     </span>
                   )}
 
-                  {isLocked && (
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>ロック中</span>
-                  )}
+                  {isLocked && <span style={{ fontSize: '11px', color: '#94a3b8' }}>ロック中</span>}
                 </div>
               )
             })}
@@ -1342,92 +1319,27 @@ export default function WatchPage() {
                   複数人で一緒に見た場合は、下に氏名2〜5も入力してください。
                 </p>
 
-                {isEmployee ? (
-                  <div
-                    style={{
-                      marginBottom: '16px',
-                      padding: '14px 16px',
-                      borderRadius: '10px',
-                      backgroundColor: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                    }}
-                  >
-                    <div style={{ fontSize: '13px', color: '#475569', marginBottom: '10px', fontWeight: 'bold' }}>
-                      ログイン中の社員情報を自動で使用します
-                    </div>
-
-                    <div style={{ fontSize: '14px', color: '#0f172a', marginBottom: '8px' }}>
-                      会社：{employeeCompany || '未設定'}
-                    </div>
-
-                    <div style={{ fontSize: '14px', color: '#0f172a' }}>
-                      氏名1（自分）：{loginName || myName || '未設定'}
-                    </div>
+                <div
+                  style={{
+                    marginBottom: '16px',
+                    padding: '14px 16px',
+                    borderRadius: '10px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <div style={{ fontSize: '13px', color: '#475569', marginBottom: '10px', fontWeight: 'bold' }}>
+                    ログイン中の社員情報を自動で使用します
                   </div>
-                ) : (
-                  <>
-                    <div style={{ marginBottom: '16px' }}>
-                      <label
-                        style={{
-                          fontSize: '13px',
-                          color: '#475569',
-                          marginBottom: '6px',
-                          display: 'block',
-                        }}
-                      >
-                        会社
-                      </label>
-                      <select
-                        value={companyId}
-                        onChange={(e) => setCompanyId(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          border: '1px solid #cbd5e1',
-                          fontSize: '15px',
-                          color: '#0f172a',
-                          backgroundColor: '#f8fafc',
-                        }}
-                      >
-                        <option value="">選択してください</option>
-                        {companies.map((co) => (
-                          <option key={co.id} value={co.id}>
-                            {co.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
 
-                    <div style={{ marginBottom: '16px' }}>
-                      <label
-                        style={{
-                          fontSize: '13px',
-                          color: '#475569',
-                          marginBottom: '6px',
-                          display: 'block',
-                          fontWeight: '600',
-                        }}
-                      >
-                        氏名1（自分）
-                      </label>
-                      <input
-                        value={myName}
-                        onChange={(e) => setMyName(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          border: '1px solid #cbd5e1',
-                          fontSize: '15px',
-                          color: '#0f172a',
-                          backgroundColor: '#f8fafc',
-                          boxSizing: 'border-box',
-                        }}
-                      />
-                    </div>
-                  </>
-                )}
+                  <div style={{ fontSize: '14px', color: '#0f172a', marginBottom: '8px' }}>
+                    会社：{employeeCompany || '未設定'}
+                  </div>
+
+                  <div style={{ fontSize: '14px', color: '#0f172a' }}>
+                    氏名1（自分）：{loginName || myName || '未設定'}
+                  </div>
+                </div>
 
                 {subNames.map((name, index) => (
                   <div key={index} style={{ marginBottom: '12px' }}>
@@ -1452,9 +1364,7 @@ export default function WatchPage() {
                       <input
                         placeholder="姓"
                         value={name.last}
-                        onChange={(e) =>
-                          handleSubNameChange(index, 'last', e.target.value)
-                        }
+                        onChange={(e) => handleSubNameChange(index, 'last', e.target.value)}
                         style={{
                           width: '100%',
                           padding: '10px 14px',
@@ -1469,9 +1379,7 @@ export default function WatchPage() {
                       <input
                         placeholder="名"
                         value={name.first}
-                        onChange={(e) =>
-                          handleSubNameChange(index, 'first', e.target.value)
-                        }
+                        onChange={(e) => handleSubNameChange(index, 'first', e.target.value)}
                         style={{
                           width: '100%',
                           padding: '10px 14px',
