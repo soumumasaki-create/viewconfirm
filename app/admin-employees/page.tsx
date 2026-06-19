@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
 type Employee = {
@@ -52,6 +52,7 @@ export default function AdminEmployeesPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [importRows, setImportRows] = useState<ImportEmployeeRow[]>([])
   const [importFileName, setImportFileName] = useState('')
+  const employeeFormRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     fetchEmployees()
@@ -203,6 +204,13 @@ export default function AdminEmployeesPage() {
     setCompany(emp.company)
     setAffiliation(emp.affiliation || '')
     setMessage('')
+
+    setTimeout(() => {
+      employeeFormRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }, 0)
   }
 
   const handleCancelEdit = () => {
@@ -721,6 +729,7 @@ export default function AdminEmployeesPage() {
         </div>
 
         <div
+          ref={employeeFormRef}
           style={{
             backgroundColor: '#fff',
             border: '1px solid #e2e8f0',
@@ -728,6 +737,7 @@ export default function AdminEmployeesPage() {
             padding: '32px',
             marginBottom: '32px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            scrollMarginTop: '24px',
           }}
         >
           <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '20px' }}>
