@@ -479,7 +479,15 @@ export default function AdminEmployeesPage() {
 
         updatedCount += 1
       } else {
-        const { error } = await supabase.from('employees').insert(payload)
+        const insertPayload = {
+          ...payload,
+          employee_password: '1234',
+          must_change_password: true,
+          password_reset_at: new Date().toISOString(),
+          password_reset_by: 'CSV取込',
+        }
+
+        const { error } = await supabase.from('employees').insert(insertPayload)
 
         if (error) {
           setImportMessage('❌ ' + row.rowNumber + '行目でエラー: ' + error.message)
