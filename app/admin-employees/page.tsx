@@ -216,6 +216,28 @@ export default function AdminEmployeesPage() {
     await fetchEmployees()
   }
 
+  const handleResetEmployeePassword = async (id: number, name: string) => {
+    if (!confirm(name + ' さんのパスワードを初期化して 1234 に戻しますか？')) return
+
+    const { error } = await supabase
+      .from('employees')
+      .update({
+        employee_password: '1234',
+        must_change_password: true,
+        password_reset_at: new Date().toISOString(),
+        password_reset_by: '管理者',
+      })
+      .eq('id', id)
+
+    if (error) {
+      setMessage('❌ パスワード初期化に失敗しました: ' + error.message)
+      return
+    }
+
+    setMessage('✅ ' + name + ' さんのパスワードを初期化しました。初期パスワードは 1234 です。')
+    await fetchEmployees()
+  }
+
   const parseCsvLine = (line: string) => {
     if (line.includes('\t') && !line.includes(',')) {
       return line.split('\t').map((value) => value.trim())
@@ -908,6 +930,20 @@ export default function AdminEmployeesPage() {
                         }}
                       >
                         修正
+                      </button>
+                      <button
+                        onClick={() => handleResetEmployeePassword(emp.id, emp.last_name + ' ' + emp.first_name)}
+                        style={{
+                          padding: '6px 14px',
+                          backgroundColor: '#f59e0b',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                        }}
+                      >
+                        パスワード初期化
                       </button>
                       <button
                         onClick={() => handleDelete(emp.id, emp.last_name + ' ' + emp.first_name)}
