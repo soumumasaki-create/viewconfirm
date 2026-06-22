@@ -414,39 +414,77 @@ export default function WatchPage() {
       }
     }
 
-    const stayOnWatch = () => {
+    const buildWatchUrl = (guardNumber: number) => {
+      return `/watch?stay=${guardNumber}&t=${Date.now()}`
+    }
+
+    const createBackGuard = () => {
       if (allowLeaveByLogoutRef.current) return
       if (!hasValidEmployee()) return
 
       if (window.location.pathname !== '/watch') {
-        window.location.replace('/watch')
+        window.location.replace(buildWatchUrl(1))
         return
       }
 
-      window.history.pushState({ viewconfirmWatchGuard: Date.now() }, '', '/watch')
+      const guard1 = buildWatchUrl(1)
+      const guard2 = buildWatchUrl(2)
+      const guard3 = buildWatchUrl(3)
+      const guard4 = buildWatchUrl(4)
+
+      window.history.replaceState({ viewconfirmWatchGuard: 1 }, '', guard1)
+      window.history.pushState({ viewconfirmWatchGuard: 2 }, '', guard2)
+      window.history.pushState({ viewconfirmWatchGuard: 3 }, '', guard3)
+      window.history.pushState({ viewconfirmWatchGuard: 4 }, '', guard4)
     }
 
-    window.history.replaceState({ viewconfirmWatchBase: true }, '', '/watch')
-    window.history.pushState({ viewconfirmWatchGuard: Date.now() }, '', '/watch')
-    window.history.pushState({ viewconfirmWatchGuard: Date.now() + 1 }, '', '/watch')
+    const returnToWatch = () => {
+      if (allowLeaveByLogoutRef.current) return
+      if (!hasValidEmployee()) return
+
+      window.location.replace(buildWatchUrl(1))
+    }
+
+    createBackGuard()
+    setTimeout(createBackGuard, 100)
+    setTimeout(createBackGuard, 500)
 
     const handlePopState = () => {
-      stayOnWatch()
-      setTimeout(stayOnWatch, 0)
-      setTimeout(stayOnWatch, 100)
+      returnToWatch()
     }
 
     const handlePageShow = () => {
-      stayOnWatch()
-      setTimeout(stayOnWatch, 100)
+      if (allowLeaveByLogoutRef.current) return
+      if (!hasValidEmployee()) return
+
+      if (window.location.pathname !== '/watch') {
+        window.location.replace(buildWatchUrl(1))
+        return
+      }
+
+      setTimeout(createBackGuard, 100)
+    }
+
+    const handleFocus = () => {
+      if (allowLeaveByLogoutRef.current) return
+      if (!hasValidEmployee()) return
+
+      if (window.location.pathname !== '/watch') {
+        window.location.replace(buildWatchUrl(1))
+        return
+      }
+
+      setTimeout(createBackGuard, 100)
     }
 
     window.addEventListener('popstate', handlePopState)
     window.addEventListener('pageshow', handlePageShow)
+    window.addEventListener('focus', handleFocus)
 
     return () => {
       window.removeEventListener('popstate', handlePopState)
       window.removeEventListener('pageshow', handlePageShow)
+      window.removeEventListener('focus', handleFocus)
     }
   }, [])
 
