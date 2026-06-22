@@ -414,77 +414,49 @@ export default function WatchPage() {
       }
     }
 
-    const buildWatchUrl = (guardNumber: number) => {
-      return `/watch?stay=${guardNumber}&t=${Date.now()}`
-    }
-
-    const createBackGuard = () => {
+    const addHistoryGuard = () => {
       if (allowLeaveByLogoutRef.current) return
       if (!hasValidEmployee()) return
+      if (window.location.pathname !== '/watch') return
 
-      if (window.location.pathname !== '/watch') {
-        window.location.replace(buildWatchUrl(1))
-        return
-      }
-
-      const guard1 = buildWatchUrl(1)
-      const guard2 = buildWatchUrl(2)
-      const guard3 = buildWatchUrl(3)
-      const guard4 = buildWatchUrl(4)
-
-      window.history.replaceState({ viewconfirmWatchGuard: 1 }, '', guard1)
-      window.history.pushState({ viewconfirmWatchGuard: 2 }, '', guard2)
-      window.history.pushState({ viewconfirmWatchGuard: 3 }, '', guard3)
-      window.history.pushState({ viewconfirmWatchGuard: 4 }, '', guard4)
+      window.history.pushState({ viewconfirmWatchGuard: Date.now() }, '', window.location.href)
     }
-
-    const returnToWatch = () => {
-      if (allowLeaveByLogoutRef.current) return
-      if (!hasValidEmployee()) return
-
-      window.location.replace(buildWatchUrl(1))
-    }
-
-    createBackGuard()
-    setTimeout(createBackGuard, 100)
-    setTimeout(createBackGuard, 500)
 
     const handlePopState = () => {
-      returnToWatch()
-    }
-
-    const handlePageShow = () => {
       if (allowLeaveByLogoutRef.current) return
       if (!hasValidEmployee()) return
 
-      if (window.location.pathname !== '/watch') {
-        window.location.replace(buildWatchUrl(1))
+      const stay = window.confirm(
+        'ログアウトしていません。\nこの画面を離れますか？\n\nOK：画面を離れる\nキャンセル：視聴画面に残る'
+      )
+
+      if (stay) {
+        allowLeaveByLogoutRef.current = true
+        window.history.back()
         return
       }
 
-      setTimeout(createBackGuard, 100)
+      window.history.pushState({ viewconfirmWatchGuard: Date.now() }, '', '/watch')
+      window.location.replace('/watch')
     }
 
-    const handleFocus = () => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (allowLeaveByLogoutRef.current) return
       if (!hasValidEmployee()) return
 
-      if (window.location.pathname !== '/watch') {
-        window.location.replace(buildWatchUrl(1))
-        return
-      }
-
-      setTimeout(createBackGuard, 100)
+      event.preventDefault()
+      event.returnValue = ''
     }
+
+    addHistoryGuard()
+    setTimeout(addHistoryGuard, 300)
 
     window.addEventListener('popstate', handlePopState)
-    window.addEventListener('pageshow', handlePageShow)
-    window.addEventListener('focus', handleFocus)
+    window.addEventListener('beforeunload', handleBeforeUnload)
 
     return () => {
       window.removeEventListener('popstate', handlePopState)
-      window.removeEventListener('pageshow', handlePageShow)
-      window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [])
 
