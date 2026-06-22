@@ -231,6 +231,19 @@ export default function WatchPage() {
   const lastSafeVideoPositionRef = useRef(0)
   const skipSeekCheckOnceRef = useRef(false)
 
+  const backButtonStyle = {
+    marginBottom: '16px',
+    padding: '10px 18px',
+    backgroundColor: '#dc2626',
+    color: '#fff',
+    border: '1px solid #b91c1c',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 'bold',
+    boxShadow: '0 2px 6px rgba(220,38,38,0.25)',
+  }
+
   const selectedMedia = useMemo(() => {
     if (!selectedEpisode?.video_url) return null
     return getMediaInfo(selectedEpisode.video_url)
@@ -1230,20 +1243,7 @@ export default function WatchPage() {
 
         {selectedChannel && !selectedEpisode && (
           <div>
-            <button
-              onClick={() => setSelectedChannel(null)}
-              style={{
-                marginBottom: '16px',
-                padding: '8px 16px',
-                backgroundColor: '#f1f5f9',
-                color: '#1e3a5f',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold',
-              }}
-            >
+            <button onClick={() => setSelectedChannel(null)} style={backButtonStyle}>
               ← チャンネル一覧に戻る
             </button>
 
@@ -1422,17 +1422,7 @@ export default function WatchPage() {
                 resetWatchState()
                 setSelectedEpisode(null)
               }}
-              style={{
-                marginBottom: '16px',
-                padding: '8px 16px',
-                backgroundColor: '#f1f5f9',
-                color: '#1e3a5f',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold',
-              }}
+              style={backButtonStyle}
             >
               ← 一覧に戻る
             </button>
@@ -1638,12 +1628,14 @@ export default function WatchPage() {
                   }}
                   style={{
                     padding: '10px 28px',
-                    backgroundColor: '#1e3a5f',
+                    backgroundColor: '#dc2626',
                     color: '#fff',
-                    border: 'none',
+                    border: '1px solid #b91c1c',
                     borderRadius: '8px',
                     cursor: 'pointer',
                     fontSize: '15px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 2px 6px rgba(220,38,38,0.25)',
                   }}
                 >
                   一覧に戻る
