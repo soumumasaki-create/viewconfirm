@@ -230,6 +230,7 @@ export default function WatchPage() {
   const currentEpisodeIdRef = useRef<number | null>(null)
   const lastSafeVideoPositionRef = useRef(0)
   const skipSeekCheckOnceRef = useRef(false)
+  const allowLeaveByLogoutRef = useRef(false)
 
   const selectedMedia = useMemo(() => {
     if (!selectedEpisode?.video_url) return null
@@ -397,6 +398,48 @@ export default function WatchPage() {
     } catch {
       localStorage.removeItem('viewconfirm_employee')
       window.location.href = '/employee-login'
+    }
+  }, [])
+
+  useEffect(() => {
+    const keepWatchPageInHistory = () => {
+      if (allowLeaveByLogoutRef.current) return
+
+      const rawEmployee = localStorage.getItem('viewconfirm_employee')
+      if (!rawEmployee) return
+
+      try {
+        const employee = JSON.parse(rawEmployee) as StoredEmployee
+        if (!employee.id || !employee.last_name || !employee.first_name) return
+
+        window.history.pushState({ viewconfirmWatchGuard: true }, '', window.location.href)
+      } catch {
+        // 何もしない
+      }
+    }
+
+    keepWatchPageInHistory()
+
+    const handlePopState = () => {
+      if (allowLeaveByLogoutRef.current) return
+
+      const rawEmployee = localStorage.getItem('viewconfirm_employee')
+      if (!rawEmployee) return
+
+      try {
+        const employee = JSON.parse(rawEmployee) as StoredEmployee
+        if (!employee.id || !employee.last_name || !employee.first_name) return
+
+        window.history.pushState({ viewconfirmWatchGuard: true }, '', window.location.href)
+      } catch {
+        // 何もしない
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
     }
   }, [])
 
@@ -786,6 +829,7 @@ export default function WatchPage() {
   }
 
   const handleLogout = async () => {
+    allowLeaveByLogoutRef.current = true
     localStorage.removeItem('viewconfirm_employee')
     await supabase.auth.signOut()
     window.location.href = '/employee-login'
