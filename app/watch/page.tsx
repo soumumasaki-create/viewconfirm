@@ -218,6 +218,7 @@ export default function WatchPage() {
   const [remainingSeconds, setRemainingSeconds] = useState(0)
   const [youtubeApiReady, setYouTubeApiReady] = useState(false)
   const [isYouTubePlaying, setIsYouTubePlaying] = useState(false)
+  const [seekWarningMessage, setSeekWarningMessage] = useState('')
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const remainingRef = useRef(0)
@@ -225,7 +226,10 @@ export default function WatchPage() {
   const playerRef = useRef<YouTubePlayer | null>(null)
   const playerContainerIdRef = useRef(`youtube-player-${Math.random().toString(36).slice(2)}`)
   const positionSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const seekCheckTimerRef = useRef<NodeJS.Timeout | null>(null)
   const currentEpisodeIdRef = useRef<number | null>(null)
+  const lastSafeVideoPositionRef = useRef(0)
+  const skipSeekCheckOnceRef = useRef(false)
 
   const selectedMedia = useMemo(() => {
     if (!selectedEpisode?.video_url) return null
@@ -327,6 +331,10 @@ export default function WatchPage() {
       clearInterval(positionSaveTimerRef.current)
       positionSaveTimerRef.current = null
     }
+    if (seekCheckTimerRef.current) {
+      clearInterval(seekCheckTimerRef.current)
+      seekCheckTimerRef.current = null
+    }
   }
 
   const resetWatchState = () => {
@@ -336,8 +344,31 @@ export default function WatchPage() {
     setIsYouTubePlaying(false)
     setCanComplete(false)
     setWatched(false)
+    setSeekWarningMessage('')
     remainingRef.current = 0
     currentEpisodeIdRef.current = null
+    lastSafeVideoPositionRef.current = 0
+    skipSeekCheckOnceRef.current = false
+  }
+
+  const playYouTubeVideo = () => {
+    if (!playerRef.current) return
+
+    try {
+      playerRef.current.playVideo()
+    } catch {
+      // 何もしない
+    }
+  }
+
+  const pauseYouTubeVideo = () => {
+    if (!playerRef.current) return
+
+    try {
+      playerRef.current.pauseVideo()
+    } catch {
+      // 何もしない
+    }
   }
 
   useEffect(() => {
@@ -538,7 +569,7 @@ export default function WatchPage() {
         )
       } else {
         setCompletionMessage(
-          `動画を再生してください。前回の続きから再開できます。あと${formatSeconds(
+          `下の「再生」ボタンを押してください。前回の続きから再開できます。あと${formatSeconds(
             remainingSeconds
           )}で「視聴完了」ボタンが表示されます。`
         )
@@ -575,6 +606,9 @@ export default function WatchPage() {
 
     const YT = window.YT
     if (!YT?.Player) return
+
+    lastSafeVideoPositionRef.current = savedPosition
+    skipSeekCheckOnceRef.current = savedPosition > 0
 
     playerRef.current = new YT.Player(playerContainerIdRef.current, {
       videoId,
@@ -672,6 +706,37 @@ export default function WatchPage() {
           // 何もしない
         }
       }, 1000)
+
+      seekCheckTimerRef.current = setInterval(() => {
+        if (!selectedEpisode || !playerRef.current) return
+        if (!pageActiveRef.current) return
+        if (!isYouTubePlaying) return
+
+        try {
+          const currentTime = playerRef.current.getCurrentTime()
+          const lastSafeTime = lastSafeVideoPositionRef.current
+
+          if (skipSeekCheckOnceRef.current) {
+            skipSeekCheckOnceRef.current = false
+            lastSafeVideoPositionRef.current = currentTime
+            return
+          }
+
+          if (currentTime > lastSafeTime + 4) {
+            const backTo = Math.max(0, lastSafeTime)
+            playerRef.current.seekTo(backTo, true)
+            saveVideoPosition(selectedEpisode.id, backTo)
+            setSeekWarningMessage('早送り操作の可能性があったため、元の位置に戻しました。')
+            return
+          }
+
+          if (currentTime >= lastSafeTime) {
+            lastSafeVideoPositionRef.current = currentTime
+          }
+        } catch {
+          // 何もしない
+        }
+      }, 1200)
 
       return
     }
@@ -780,18 +845,126 @@ export default function WatchPage() {
 
     if (selectedMedia.type === 'youtube') {
       return (
-        <div
-          id={playerContainerIdRef.current}
-          style={{
-            width: '100%',
-            height: '360px',
-            borderRadius: '12px',
-            marginBottom: '12px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            overflow: 'hidden',
-            backgroundColor: '#000',
-          }}
-        />
+        <div style={{ marginBottom: '12px' }}>
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '360px',
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              overflow: 'hidden',
+              backgroundColor: '#000',
+              touchAction: 'none',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+            }}
+          >
+            <div
+              id={playerContainerIdRef.current}
+              style={{
+                width: '100%',
+                height: '360px',
+                backgroundColor: '#000',
+              }}
+            />
+
+            <div
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              onDoubleClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 2,
+                backgroundColor: 'transparent',
+                touchAction: 'none',
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '10px',
+              marginTop: '10px',
+            }}
+          >
+            <button
+              onClick={playYouTubeVideo}
+              style={{
+                padding: '12px',
+                backgroundColor: '#2563eb',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '15px',
+                fontWeight: 'bold',
+              }}
+            >
+              再生
+            </button>
+
+            <button
+              onClick={pauseYouTubeVideo}
+              style={{
+                padding: '12px',
+                backgroundColor: '#475569',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '15px',
+                fontWeight: 'bold',
+              }}
+            >
+              一時停止
+            </button>
+          </div>
+
+          <div
+            style={{
+              marginTop: '8px',
+              fontSize: '12px',
+              color: '#64748b',
+              lineHeight: 1.6,
+            }}
+          >
+            スマホでの誤操作防止のため、動画の操作は下のボタンで行ってください。
+          </div>
+
+          {seekWarningMessage && (
+            <div
+              style={{
+                marginTop: '8px',
+                padding: '10px 12px',
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '8px',
+                color: '#991b1b',
+                fontSize: '13px',
+                lineHeight: 1.6,
+              }}
+            >
+              {seekWarningMessage}
+            </div>
+          )}
+        </div>
       )
     }
 
