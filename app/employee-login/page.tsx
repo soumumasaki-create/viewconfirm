@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
 type EmployeeLoginInfo = {
@@ -13,12 +13,22 @@ type EmployeeLoginInfo = {
   must_change_password: boolean | null
 }
 
+type StoredEmployee = {
+  id?: number
+  last_name?: string
+  first_name?: string
+  company?: string
+  affiliation?: string
+  must_change_password?: boolean
+}
+
 export default function EmployeeLoginPage() {
   const [lastName, setLastName] = useState('')
   const [firstName, setFirstName] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [checkingLogin, setCheckingLogin] = useState(true)
   const [error, setError] = useState('')
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeLoginInfo | null>(null)
   const [employeeInfo, setEmployeeInfo] = useState<{ company: string; affiliation: string } | null>(null)
@@ -29,6 +39,35 @@ export default function EmployeeLoginPage() {
       .replace(/\s+/g, ' ')
       .trim()
   }
+
+  useEffect(() => {
+    const rawEmployee = localStorage.getItem('viewconfirm_employee')
+
+    if (!rawEmployee) {
+      setCheckingLogin(false)
+      return
+    }
+
+    try {
+      const employee = JSON.parse(rawEmployee) as StoredEmployee
+
+      if (!employee.id || !employee.last_name || !employee.first_name) {
+        localStorage.removeItem('viewconfirm_employee')
+        setCheckingLogin(false)
+        return
+      }
+
+      if (employee.must_change_password === true) {
+        window.location.href = '/employee-change-password'
+        return
+      }
+
+      window.location.href = '/watch'
+    } catch {
+      localStorage.removeItem('viewconfirm_employee')
+      setCheckingLogin(false)
+    }
+  }, [])
 
   const findEmployee = async (nextLastName: string, nextFirstName: string) => {
     const normalizedLastName = normalizeName(nextLastName)
@@ -168,6 +207,26 @@ export default function EmployeeLoginPage() {
     }
 
     window.location.href = '/watch'
+  }
+
+  if (checkingLogin) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%)',
+          fontFamily: 'sans-serif',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#1e3a5f',
+          fontSize: '15px',
+          fontWeight: 'bold',
+        }}
+      >
+        ログイン状態を確認しています...
+      </div>
+    )
   }
 
   return (
