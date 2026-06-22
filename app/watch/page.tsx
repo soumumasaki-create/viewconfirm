@@ -230,7 +230,6 @@ export default function WatchPage() {
   const currentEpisodeIdRef = useRef<number | null>(null)
   const lastSafeVideoPositionRef = useRef(0)
   const skipSeekCheckOnceRef = useRef(false)
-  const allowLeaveByLogoutRef = useRef(false)
 
   const selectedMedia = useMemo(() => {
     if (!selectedEpisode?.video_url) return null
@@ -398,65 +397,6 @@ export default function WatchPage() {
     } catch {
       localStorage.removeItem('viewconfirm_employee')
       window.location.href = '/employee-login'
-    }
-  }, [])
-
-  useEffect(() => {
-    const hasValidEmployee = () => {
-      const rawEmployee = localStorage.getItem('viewconfirm_employee')
-      if (!rawEmployee) return false
-
-      try {
-        const employee = JSON.parse(rawEmployee) as StoredEmployee
-        return !!employee.id && !!employee.last_name && !!employee.first_name
-      } catch {
-        return false
-      }
-    }
-
-    const addHistoryGuard = () => {
-      if (allowLeaveByLogoutRef.current) return
-      if (!hasValidEmployee()) return
-      if (window.location.pathname !== '/watch') return
-
-      window.history.pushState({ viewconfirmWatchGuard: Date.now() }, '', window.location.href)
-    }
-
-    const handlePopState = () => {
-      if (allowLeaveByLogoutRef.current) return
-      if (!hasValidEmployee()) return
-
-      const stay = window.confirm(
-        'ログアウトしていません。\nこの画面を離れますか？\n\nOK：画面を離れる\nキャンセル：視聴画面に残る'
-      )
-
-      if (stay) {
-        allowLeaveByLogoutRef.current = true
-        window.history.back()
-        return
-      }
-
-      window.history.pushState({ viewconfirmWatchGuard: Date.now() }, '', '/watch')
-      window.location.replace('/watch')
-    }
-
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (allowLeaveByLogoutRef.current) return
-      if (!hasValidEmployee()) return
-
-      event.preventDefault()
-      event.returnValue = ''
-    }
-
-    addHistoryGuard()
-    setTimeout(addHistoryGuard, 300)
-
-    window.addEventListener('popstate', handlePopState)
-    window.addEventListener('beforeunload', handleBeforeUnload)
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState)
-      window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [])
 
@@ -846,7 +786,6 @@ export default function WatchPage() {
   }
 
   const handleLogout = async () => {
-    allowLeaveByLogoutRef.current = true
     localStorage.removeItem('viewconfirm_employee')
     await supabase.auth.signOut()
     window.location.href = '/employee-login'
