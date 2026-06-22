@@ -402,44 +402,51 @@ export default function WatchPage() {
   }, [])
 
   useEffect(() => {
-    const keepWatchPageInHistory = () => {
-      if (allowLeaveByLogoutRef.current) return
-
+    const hasValidEmployee = () => {
       const rawEmployee = localStorage.getItem('viewconfirm_employee')
-      if (!rawEmployee) return
+      if (!rawEmployee) return false
 
       try {
         const employee = JSON.parse(rawEmployee) as StoredEmployee
-        if (!employee.id || !employee.last_name || !employee.first_name) return
-
-        window.history.pushState({ viewconfirmWatchGuard: true }, '', window.location.href)
+        return !!employee.id && !!employee.last_name && !!employee.first_name
       } catch {
-        // 何もしない
+        return false
       }
     }
 
-    keepWatchPageInHistory()
+    const stayOnWatch = () => {
+      if (allowLeaveByLogoutRef.current) return
+      if (!hasValidEmployee()) return
+
+      if (window.location.pathname !== '/watch') {
+        window.location.replace('/watch')
+        return
+      }
+
+      window.history.pushState({ viewconfirmWatchGuard: Date.now() }, '', '/watch')
+    }
+
+    window.history.replaceState({ viewconfirmWatchBase: true }, '', '/watch')
+    window.history.pushState({ viewconfirmWatchGuard: Date.now() }, '', '/watch')
+    window.history.pushState({ viewconfirmWatchGuard: Date.now() + 1 }, '', '/watch')
 
     const handlePopState = () => {
-      if (allowLeaveByLogoutRef.current) return
+      stayOnWatch()
+      setTimeout(stayOnWatch, 0)
+      setTimeout(stayOnWatch, 100)
+    }
 
-      const rawEmployee = localStorage.getItem('viewconfirm_employee')
-      if (!rawEmployee) return
-
-      try {
-        const employee = JSON.parse(rawEmployee) as StoredEmployee
-        if (!employee.id || !employee.last_name || !employee.first_name) return
-
-        window.history.pushState({ viewconfirmWatchGuard: true }, '', window.location.href)
-      } catch {
-        // 何もしない
-      }
+    const handlePageShow = () => {
+      stayOnWatch()
+      setTimeout(stayOnWatch, 100)
     }
 
     window.addEventListener('popstate', handlePopState)
+    window.addEventListener('pageshow', handlePageShow)
 
     return () => {
       window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('pageshow', handlePageShow)
     }
   }, [])
 
