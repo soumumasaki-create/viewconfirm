@@ -11,6 +11,7 @@ type Channel = {
   target_scope: string
   target_companies: string[]
   target_affiliations: string[]
+  play_order_rule: string | null
 }
 
 const ALL_COMPANIES = ['高見起業', 'タイホー荷役', '翠星', '山大運輸', 'みらい']
@@ -40,6 +41,7 @@ export default function ChannelsPage() {
   const [targetScope, setTargetScope] = useState('all')
   const [targetCompanies, setTargetCompanies] = useState<string[]>([])
   const [targetAffiliations, setTargetAffiliations] = useState<string[]>([])
+  const [playOrderRule, setPlayOrderRule] = useState('sequential')
   const [loading, setLoading] = useState(false)
 
   const [editChannel, setEditChannel] = useState<Channel | null>(null)
@@ -50,6 +52,7 @@ export default function ChannelsPage() {
   const [editTargetScope, setEditTargetScope] = useState('all')
   const [editTargetCompanies, setEditTargetCompanies] = useState<string[]>([])
   const [editTargetAffiliations, setEditTargetAffiliations] = useState<string[]>([])
+  const [editPlayOrderRule, setEditPlayOrderRule] = useState('sequential')
   const [editLoading, setEditLoading] = useState(false)
 
   const fetchChannels = async () => {
@@ -175,6 +178,7 @@ export default function ChannelsPage() {
       target_scope: targetScope,
       target_companies: targetScope === 'all' ? [] : targetCompanies,
       target_affiliations: targetScope === 'all' ? [] : targetAffiliations,
+      play_order_rule: playOrderRule,
     })
 
     setTitle('')
@@ -184,6 +188,7 @@ export default function ChannelsPage() {
     setTargetScope('all')
     setTargetCompanies([])
     setTargetAffiliations([])
+    setPlayOrderRule('sequential')
     await fetchChannels()
     setLoading(false)
   }
@@ -197,6 +202,7 @@ export default function ChannelsPage() {
     setEditTargetScope(ch.target_scope || 'all')
     setEditTargetCompanies(ch.target_companies || [])
     setEditTargetAffiliations(ch.target_affiliations || [])
+    setEditPlayOrderRule(ch.play_order_rule || 'sequential')
   }
 
   const handleEditSave = async () => {
@@ -217,14 +223,18 @@ export default function ChannelsPage() {
       }
     }
 
-    await supabase.from('channels').update({
-      title: editTitle,
-      description: editDescription,
-      thumbnail_url: thumbnailUrl,
-      target_scope: editTargetScope,
-      target_companies: editTargetScope === 'all' ? [] : editTargetCompanies,
-      target_affiliations: editTargetScope === 'all' ? [] : editTargetAffiliations,
-    }).eq('id', editChannel.id)
+    await supabase
+      .from('channels')
+      .update({
+        title: editTitle,
+        description: editDescription,
+        thumbnail_url: thumbnailUrl,
+        target_scope: editTargetScope,
+        target_companies: editTargetScope === 'all' ? [] : editTargetCompanies,
+        target_affiliations: editTargetScope === 'all' ? [] : editTargetAffiliations,
+        play_order_rule: editPlayOrderRule,
+      })
+      .eq('id', editChannel.id)
 
     setEditChannel(null)
     await fetchChannels()
@@ -275,6 +285,22 @@ export default function ChannelsPage() {
     }
 
     return badges
+  }
+
+  const getPlayOrderBadge = (ch: Channel) => {
+    if ((ch.play_order_rule || 'sequential') === 'free') {
+      return {
+        label: 'ランダムOK',
+        bg: '#ede9fe',
+        color: '#6d28d9',
+      }
+    }
+
+    return {
+      label: '順番に見る',
+      bg: '#fee2e2',
+      color: '#b91c1c',
+    }
   }
 
   const renderSelectionSummary = (companies: string[], affiliations: string[]) => {
@@ -387,6 +413,21 @@ export default function ChannelsPage() {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '13px', color: '#475569', marginBottom: '6px', display: 'block' }}>視聴順設定</label>
+            <select
+              value={playOrderRule}
+              onChange={(e) => setPlayOrderRule(e.target.value)}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '15px', color: '#0f172a', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+            >
+              <option value="sequential">順番に見る</option>
+              <option value="free">ランダムOK</option>
+            </select>
+            <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b', lineHeight: 1.6 }}>
+              「順番に見る」は、前のコンテンツを見終わるまで次を開けません。「ランダムOK」は、どのコンテンツからでも開けます。
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
             <label style={{ fontSize: '13px', color: '#475569', marginBottom: '6px', display: 'block' }}>対象設定</label>
             <select
               value={targetScope}
@@ -475,50 +516,71 @@ export default function ChannelsPage() {
         <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '16px' }}>チャンネル一覧</h2>
         {channels.length === 0 && <p style={{ color: '#94a3b8' }}>チャンネルがまだありません</p>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-          {channels.map((ch) => (
-            <div key={ch.id} style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-              {ch.thumbnail_url ? (
-                <img src={ch.thumbnail_url} alt={ch.title} style={{ width: '100%', objectFit: 'contain', backgroundColor: '#f1f5f9' }} />
-              ) : (
-                <div style={{ width: '100%', height: '140px', backgroundColor: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>📁</div>
-              )}
-              <div style={{ padding: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '6px' }}>{ch.title}</h3>
-                {ch.description && <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '12px' }}>{ch.description}</p>}
+          {channels.map((ch) => {
+            const playOrderBadge = getPlayOrderBadge(ch)
 
-                <div style={{ marginBottom: '10px' }}>
-                  <div style={{ color: '#475569', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>誰向けか</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {getTargetBadges(ch).map((badge, index) => (
-                      <span
-                        key={`${ch.id}-${badge.label}-${index}`}
-                        style={{
-                          display: 'inline-block',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          padding: '5px 10px',
-                          borderRadius: '999px',
-                          backgroundColor: badge.bg,
-                          color: badge.color,
-                        }}
-                      >
-                        {badge.label}
-                      </span>
-                    ))}
+            return (
+              <div key={ch.id} style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                {ch.thumbnail_url ? (
+                  <img src={ch.thumbnail_url} alt={ch.title} style={{ width: '100%', objectFit: 'contain', backgroundColor: '#f1f5f9' }} />
+                ) : (
+                  <div style={{ width: '100%', height: '140px', backgroundColor: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>📁</div>
+                )}
+                <div style={{ padding: '16px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '6px' }}>{ch.title}</h3>
+                  {ch.description && <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '12px' }}>{ch.description}</p>}
+
+                  <div style={{ marginBottom: '10px' }}>
+                    <div style={{ color: '#475569', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>視聴順</div>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        padding: '5px 10px',
+                        borderRadius: '999px',
+                        backgroundColor: playOrderBadge.bg,
+                        color: playOrderBadge.color,
+                      }}
+                    >
+                      {playOrderBadge.label}
+                    </span>
+                  </div>
+
+                  <div style={{ marginBottom: '10px' }}>
+                    <div style={{ color: '#475569', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>誰向けか</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {getTargetBadges(ch).map((badge, index) => (
+                        <span
+                          key={`${ch.id}-${badge.label}-${index}`}
+                          style={{
+                            display: 'inline-block',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            padding: '5px 10px',
+                            borderRadius: '999px',
+                            backgroundColor: badge.bg,
+                            color: badge.color,
+                          }}
+                        >
+                          {badge.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <span style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '20px', backgroundColor: ch.published ? '#dcfce7' : '#fef9c3', color: ch.published ? '#16a34a' : '#ca8a04', fontWeight: 'bold' }}>
+                    {ch.published ? '公開中' : '非公開'}
+                  </span>
+
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                    <button onClick={() => handleEditOpen(ch)} style={{ flex: 1, padding: '7px', backgroundColor: '#1e3a5f', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>編集</button>
+                    <button onClick={() => handleDelete(ch.id, ch.title)} style={{ flex: 1, padding: '7px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>削除</button>
                   </div>
                 </div>
-
-                <span style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '20px', backgroundColor: ch.published ? '#dcfce7' : '#fef9c3', color: ch.published ? '#16a34a' : '#ca8a04', fontWeight: 'bold' }}>
-                  {ch.published ? '公開中' : '非公開'}
-                </span>
-
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                  <button onClick={() => handleEditOpen(ch)} style={{ flex: 1, padding: '7px', backgroundColor: '#1e3a5f', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>編集</button>
-                  <button onClick={() => handleDelete(ch.id, ch.title)} style={{ flex: 1, padding: '7px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>削除</button>
-                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </main>
 
@@ -543,6 +605,21 @@ export default function ChannelsPage() {
                 onChange={(e) => setEditDescription(e.target.value)}
                 style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '15px', color: '#0f172a', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
               />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ fontSize: '13px', color: '#475569', marginBottom: '6px', display: 'block' }}>視聴順設定</label>
+              <select
+                value={editPlayOrderRule}
+                onChange={(e) => setEditPlayOrderRule(e.target.value)}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '15px', color: '#0f172a', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+              >
+                <option value="sequential">順番に見る</option>
+                <option value="free">ランダムOK</option>
+              </select>
+              <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b', lineHeight: 1.6 }}>
+                「順番に見る」は、前のコンテンツを見終わるまで次を開けません。「ランダムOK」は、どのコンテンツからでも開けます。
+              </div>
             </div>
 
             <div style={{ marginBottom: '16px' }}>

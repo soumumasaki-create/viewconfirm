@@ -46,6 +46,7 @@ type Channel = {
   target_scope: string
   target_companies: string[]
   target_affiliations: string[]
+  play_order_rule: string | null
 }
 
 type Episode = {
@@ -852,6 +853,7 @@ export default function WatchPage() {
       : []
 
   const channelEpisodes = selectedChannel ? episodes.filter((ep) => ep.channel_id === selectedChannel.id) : []
+  const selectedChannelIsFree = (selectedChannel?.play_order_rule || 'sequential') === 'free'
 
   const renderMedia = () => {
     if (!selectedEpisode?.video_url || !selectedMedia) return null
@@ -1319,14 +1321,17 @@ export default function WatchPage() {
                 コンテンツ一覧
               </div>
               <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7 }}>
-                上から順番に見てください。前の項目を見終わると、次を開けます。
+                {selectedChannelIsFree
+                  ? 'このチャンネルはランダムOKです。見たい項目から開けます。'
+                  : '上から順番に見てください。前の項目を見終わると、次を開けます。'}
               </div>
             </div>
 
             {channelEpisodes.length === 0 && <p style={{ color: '#94a3b8' }}>コンテンツがありません</p>}
 
             {channelEpisodes.map((ep, index) => {
-              const isLocked = index > 0 && !isEpisodeWatched(channelEpisodes[index - 1].id)
+              const isLocked =
+                !selectedChannelIsFree && index > 0 && !isEpisodeWatched(channelEpisodes[index - 1].id)
               const isWatched = isEpisodeWatched(ep.id)
               const isDocument = ep.content_type === 'document'
 
