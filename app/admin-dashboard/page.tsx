@@ -238,8 +238,12 @@ export default function AdminDashboardPage() {
   }
 
   const handleCSV = () => {
-    if (!canDownloadCsv) return
     if (!selectedChannelId) return
+
+    if (!canDownloadCsv) {
+      alert('CSVダウンロード権限がありません。管理者権限を確認してください。')
+      return
+    }
 
     const rows = [[
       '氏名',
@@ -328,15 +332,15 @@ export default function AdminDashboardPage() {
     ]
 
     return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '8px' }}>
         {badges.map((badge) => (
           <span
             key={badge.label}
             style={{
               display: 'inline-block',
-              fontSize: '11px',
+              fontSize: '10px',
               fontWeight: 'bold',
-              padding: '5px 9px',
+              padding: '4px 8px',
               borderRadius: '999px',
               backgroundColor: badge.bg,
               color: badge.color,
@@ -357,18 +361,18 @@ export default function AdminDashboardPage() {
 
   const filterSelectStyle = {
     width: '100%',
-    padding: '8px 10px',
+    padding: '7px 9px',
     borderRadius: '8px',
     border: '1px solid #cbd5e1',
-    fontSize: '14px',
+    fontSize: '13px',
     color: '#0f172a',
     backgroundColor: '#f8fafc',
   }
 
   const filterLabelStyle = {
-    fontSize: '12px',
+    fontSize: '11px',
     color: '#475569',
-    marginBottom: '5px',
+    marginBottom: '4px',
     display: 'block',
     fontWeight: '700',
   }
@@ -379,52 +383,52 @@ export default function AdminDashboardPage() {
         style={{
           backgroundColor: '#1e3a5f',
           padding: '0 40px',
-          height: '64px',
+          height: '58px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
-              width: '36px',
-              height: '36px',
+              width: '32px',
+              height: '32px',
               backgroundColor: '#2563eb',
               borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '18px',
+              fontSize: '16px',
             }}
           >
             📺
           </div>
           <div>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff' }}>ViewConfirm</div>
-            <div style={{ fontSize: '10px', color: '#93c5fd', letterSpacing: '0.1em' }}>
+            <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>ViewConfirm</div>
+            <div style={{ fontSize: '9px', color: '#93c5fd', letterSpacing: '0.1em' }}>
               MIRAI GROUP
             </div>
           </div>
         </div>
       </header>
 
-      <main style={{ padding: '28px 40px 40px', maxWidth: '1200px', margin: '0 auto' }}>
+      <main style={{ padding: '18px 40px 32px', maxWidth: '1200px', margin: '0 auto' }}>
         <a
           href="/"
           style={{
             display: 'inline-block',
-            marginBottom: '18px',
-            padding: '10px 18px',
+            marginBottom: '12px',
+            padding: '8px 14px',
             backgroundColor: '#dc2626',
             color: '#fff',
             border: '1px solid #b91c1c',
             borderRadius: '8px',
             cursor: 'pointer',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: 'bold',
             textDecoration: 'none',
-            boxShadow: '0 2px 6px rgba(220,38,38,0.25)',
+            boxShadow: '0 2px 6px rgba(220,38,38,0.2)',
           }}
         >
           ← トップに戻る
@@ -432,10 +436,10 @@ export default function AdminDashboardPage() {
 
         <h1
           style={{
-            fontSize: '22px',
+            fontSize: '20px',
             fontWeight: 'bold',
             color: '#1e3a5f',
-            marginBottom: '18px',
+            marginBottom: '12px',
           }}
         >
           📊 視聴状況ダッシュボード
@@ -445,17 +449,17 @@ export default function AdminDashboardPage() {
           style={{
             backgroundColor: '#ffffff',
             border: '1px solid #dbeafe',
-            borderRadius: '14px',
-            padding: '16px',
-            marginBottom: '20px',
-            boxShadow: '0 3px 10px rgba(30,58,95,0.05)',
+            borderRadius: '12px',
+            padding: '12px',
+            marginBottom: '14px',
+            boxShadow: '0 2px 8px rgba(30,58,95,0.05)',
           }}
         >
-          <div style={{ marginBottom: '12px' }}>
-            <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
+          <div style={{ marginBottom: '10px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '3px' }}>
               絞り込み条件
             </div>
-            <p style={{ margin: 0, fontSize: '12px', color: '#64748b', lineHeight: '1.5' }}>
+            <p style={{ margin: 0, fontSize: '11px', color: '#64748b', lineHeight: '1.4' }}>
               チャンネル・会社・所属を選んで視聴状況を絞り込みます。
             </p>
             {renderConditionBadges()}
@@ -465,12 +469,12 @@ export default function AdminDashboardPage() {
             style={{
               display: 'grid',
               gridTemplateColumns: '1.3fr 1fr 1fr',
-              gap: '12px',
-              marginBottom: '12px',
+              gap: '10px',
+              marginBottom: '10px',
             }}
           >
             <div>
-              <label style={filterLabelStyle}>① チャンネルを選択</label>
+              <label style={filterLabelStyle}>① チャンネル</label>
               <select
                 value={selectedChannelId ?? ''}
                 onChange={(e) => setSelectedChannelId(e.target.value ? Number(e.target.value) : null)}
@@ -486,7 +490,7 @@ export default function AdminDashboardPage() {
             </div>
 
             <div>
-              <label style={filterLabelStyle}>② 会社を選択</label>
+              <label style={filterLabelStyle}>② 会社</label>
               <select
                 value={selectedCompanyId ?? ''}
                 onChange={(e) => setSelectedCompanyId(e.target.value ? Number(e.target.value) : null)}
@@ -502,7 +506,7 @@ export default function AdminDashboardPage() {
             </div>
 
             <div>
-              <label style={filterLabelStyle}>③ 所属を選択</label>
+              <label style={filterLabelStyle}>③ 所属</label>
               <select
                 value={selectedAffiliation}
                 onChange={(e) => setSelectedAffiliation(e.target.value)}
@@ -522,12 +526,12 @@ export default function AdminDashboardPage() {
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr auto',
-              gap: '12px',
+              gap: '10px',
               alignItems: 'end',
             }}
           >
             <div>
-              <label style={filterLabelStyle}>表示条件</label>
+              <label style={filterLabelStyle}>表示</label>
               <select
                 value={displayMode}
                 onChange={(e) => setDisplayMode(e.target.value as 'all' | 'unwatched' | 'watched')}
@@ -564,18 +568,18 @@ export default function AdminDashboardPage() {
             <button
               onClick={clearFilters}
               style={{
-                padding: '8px 14px',
+                padding: '7px 12px',
                 backgroundColor: '#f1f5f9',
                 color: '#475569',
                 border: '1px solid #cbd5e1',
                 borderRadius: '8px',
                 cursor: 'pointer',
-                fontSize: '13px',
+                fontSize: '12px',
                 fontWeight: 'bold',
-                height: '38px',
+                height: '34px',
               }}
             >
-              条件をクリア
+              条件クリア
             </button>
           </div>
         </div>
@@ -584,18 +588,18 @@ export default function AdminDashboardPage() {
           style={{
             backgroundColor: '#ffffff',
             border: '1px solid #e2e8f0',
-            borderRadius: '16px',
-            padding: '24px',
-            marginBottom: '28px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            borderRadius: '12px',
+            padding: '14px',
+            marginBottom: '14px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           }}
         >
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '6px' }}>
+          <div style={{ marginBottom: '10px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '3px' }}>
               チャンネル一覧から選択
             </div>
-            <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
-              サムネイルをクリックすると、そのチャンネルの視聴状況を表示します。上のプルダウンと同じ選択になります。
+            <p style={{ margin: 0, fontSize: '11px', color: '#64748b', lineHeight: '1.4' }}>
+              サムネイルをクリックすると、そのチャンネルの視聴状況を表示します。
             </p>
           </div>
 
@@ -605,8 +609,8 @@ export default function AdminDashboardPage() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-                gap: '14px',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                gap: '10px',
               }}
             >
               {channels.map((ch) => {
@@ -621,13 +625,13 @@ export default function AdminDashboardPage() {
                       padding: 0,
                       textAlign: 'left',
                       backgroundColor: '#fff',
-                      border: isSelected ? '3px solid #2563eb' : '1px solid #e2e8f0',
-                      borderRadius: '14px',
+                      border: isSelected ? '2px solid #2563eb' : '1px solid #e2e8f0',
+                      borderRadius: '10px',
                       overflow: 'hidden',
                       cursor: 'pointer',
                       boxShadow: isSelected
-                        ? '0 4px 14px rgba(37,99,235,0.22)'
-                        : '0 1px 3px rgba(0,0,0,0.05)',
+                        ? '0 3px 10px rgba(37,99,235,0.18)'
+                        : '0 1px 3px rgba(0,0,0,0.04)',
                     }}
                   >
                     {ch.thumbnail_url ? (
@@ -651,7 +655,7 @@ export default function AdminDashboardPage() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '24px',
+                          fontSize: '22px',
                           color: '#fff',
                           fontWeight: 'bold',
                         }}
@@ -660,13 +664,13 @@ export default function AdminDashboardPage() {
                       </div>
                     )}
 
-                    <div style={{ padding: '12px 14px' }}>
+                    <div style={{ padding: '8px 10px' }}>
                       <div
                         style={{
-                          fontSize: '14px',
+                          fontSize: '12px',
                           fontWeight: 'bold',
                           color: '#1e3a5f',
-                          lineHeight: '1.5',
+                          lineHeight: '1.35',
                         }}
                       >
                         {ch.title}
@@ -674,17 +678,17 @@ export default function AdminDashboardPage() {
 
                       <div
                         style={{
-                          marginTop: '8px',
+                          marginTop: '5px',
                           display: 'inline-block',
-                          fontSize: '11px',
+                          fontSize: '10px',
                           fontWeight: 'bold',
-                          padding: '4px 8px',
+                          padding: '2px 6px',
                           borderRadius: '999px',
                           backgroundColor: isSelected ? '#dbeafe' : '#f1f5f9',
                           color: isSelected ? '#1d4ed8' : '#64748b',
                         }}
                       >
-                        {isSelected ? '選択中' : 'クリックして選択'}
+                        {isSelected ? '選択中' : 'クリック'}
                       </div>
                     </div>
                   </button>
@@ -699,86 +703,82 @@ export default function AdminDashboardPage() {
             <div
               ref={currentConditionRef}
               style={{
-                display: 'flex',
-                alignItems: 'stretch',
-                justifyContent: 'space-between',
-                gap: '16px',
-                marginBottom: '16px',
-                flexWrap: 'wrap',
+                display: 'grid',
+                gridTemplateColumns: '1fr 118px',
+                gap: '10px',
+                marginBottom: '10px',
                 scrollMarginTop: '20px',
               }}
             >
               <div
                 style={{
-                  flex: 1,
-                  minWidth: '320px',
                   backgroundColor: '#1e3a5f',
-                  borderRadius: '12px',
+                  borderRadius: '9px',
                   color: '#fff',
-                  padding: '16px 20px',
+                  padding: '8px 12px',
                 }}
               >
-                <div style={{ fontSize: '12px', color: '#93c5fd', marginBottom: '8px' }}>
+                <div style={{ fontSize: '10px', color: '#93c5fd', marginBottom: '4px' }}>
                   現在の表示条件
                 </div>
-                <div style={{ fontSize: '14px', lineHeight: '1.8' }}>
-                  <strong>チャンネル：</strong>{selectedChannel?.title}
-                  <span style={{ margin: '0 12px', color: '#93c5fd' }}>|</span>
-                  <strong>会社：</strong>{selectedCompany?.name || '全社員'}
-                  <span style={{ margin: '0 12px', color: '#93c5fd' }}>|</span>
-                  <strong>所属：</strong>{selectedAffiliation || '全所属'}
+                <div style={{ fontSize: '12px', lineHeight: '1.45', fontWeight: 'bold' }}>
+                  チャンネル：{selectedChannel?.title}
+                  <span style={{ margin: '0 8px', color: '#93c5fd' }}>|</span>
+                  会社：{selectedCompany?.name || '全社員'}
+                  <span style={{ margin: '0 8px', color: '#93c5fd' }}>|</span>
+                  所属：{selectedAffiliation || '全所属'}
                 </div>
-                <div style={{ marginTop: '8px', fontSize: '13px', color: '#bfdbfe' }}>
-                  対象社員 {companyEmployees.length}名 ／ 表示中 {displayedEmployees.length}名
+                <div style={{ marginTop: '3px', fontSize: '11px', color: '#bfdbfe' }}>
+                  対象 {companyEmployees.length}名 ／ 表示 {displayedEmployees.length}名
                 </div>
-                <div style={{ marginTop: '6px', fontSize: '12px', color: '#93c5fd', lineHeight: '1.7' }}>
-                  チャンネル対象設定：{getChannelTargetSummary(selectedChannel)}
+                <div style={{ marginTop: '2px', fontSize: '10px', color: '#93c5fd', lineHeight: '1.35' }}>
+                  対象設定：{getChannelTargetSummary(selectedChannel)}
                 </div>
               </div>
 
-              {canDownloadCsv && (
-                <button
-                  onClick={handleCSV}
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: '#16a34a',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    minHeight: '52px',
-                  }}
-                >
-                  📥 CSVダウンロード
-                </button>
-              )}
+              <button
+                onClick={handleCSV}
+                style={{
+                  padding: '6px 8px',
+                  backgroundColor: canDownloadCsv ? '#16a34a' : '#94a3b8',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '9px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  minHeight: '54px',
+                }}
+              >
+                📥 CSV
+                <br />
+                ダウンロード
+              </button>
             </div>
 
             <div
               style={{
                 backgroundColor: '#fff',
                 border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '18px 20px',
-                marginBottom: '14px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                borderRadius: '9px',
+                padding: '8px 12px',
+                marginBottom: '10px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
               }}
             >
-              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '6px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '3px' }}>
                 チャンネル全体の進捗
               </div>
-              <div style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.7', marginBottom: '12px' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', lineHeight: '1.35', marginBottom: '5px' }}>
                 対象社員と対象動画を合わせた全体の視聴率です。
               </div>
-              <div style={{ fontSize: '14px', color: '#166534', fontWeight: 'bold', marginBottom: '8px' }}>
+              <div style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold', marginBottom: '4px' }}>
                 {totalCompletedViews}/{totalPossibleViews} 件 視聴済み
               </div>
               <div
                 style={{
                   width: '100%',
-                  height: '10px',
+                  height: '6px',
                   backgroundColor: '#e2e8f0',
                   borderRadius: '999px',
                   overflow: 'hidden',
@@ -792,7 +792,7 @@ export default function AdminDashboardPage() {
                   }}
                 />
               </div>
-              <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b' }}>
+              <div style={{ marginTop: '4px', fontSize: '10px', color: '#64748b' }}>
                 全体進捗 {overallRate}%
               </div>
             </div>
@@ -800,27 +800,27 @@ export default function AdminDashboardPage() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                gap: '12px',
-                marginBottom: '18px',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '9px',
+                marginBottom: '12px',
               }}
             >
               <div
                 style={{
                   backgroundColor: '#fff',
                   border: '1px solid #e2e8f0',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  borderRadius: '9px',
+                  padding: '9px 12px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                 }}
               >
-                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
+                <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '3px' }}>
                   対象社員数
                 </div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e3a5f' }}>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e3a5f', lineHeight: 1 }}>
                   {companyEmployees.length}
                 </div>
-                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                <div style={{ marginTop: '2px', fontSize: '10px', color: '#64748b' }}>
                   名
                 </div>
               </div>
@@ -829,18 +829,18 @@ export default function AdminDashboardPage() {
                 style={{
                   backgroundColor: '#fff',
                   border: '1px solid #e2e8f0',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  borderRadius: '9px',
+                  padding: '9px 12px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                 }}
               >
-                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
+                <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '3px' }}>
                   視聴済み件数
                 </div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a' }}>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#16a34a', lineHeight: 1 }}>
                   {totalCompletedViews}
                 </div>
-                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                <div style={{ marginTop: '2px', fontSize: '10px', color: '#64748b' }}>
                   件
                 </div>
               </div>
@@ -849,38 +849,38 @@ export default function AdminDashboardPage() {
                 style={{
                   backgroundColor: '#fff',
                   border: '1px solid #e2e8f0',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  borderRadius: '9px',
+                  padding: '9px 12px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                 }}
               >
-                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
+                <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '3px' }}>
                   未視聴件数
                 </div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ef4444' }}>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#ef4444', lineHeight: 1 }}>
                   {remainingViews}
                 </div>
-                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                <div style={{ marginTop: '2px', fontSize: '10px', color: '#64748b' }}>
                   件
                 </div>
               </div>
             </div>
 
-            <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '2px' }}>
                 動画ごとの進捗
               </div>
-              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
-                各動画ごとに、何名が視聴済みかを先に確認できます。
+              <p style={{ margin: 0, fontSize: '11px', color: '#64748b', lineHeight: '1.35' }}>
+                各動画ごとに、何名が視聴済みかを確認できます。
               </p>
             </div>
 
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                gap: '12px',
-                marginBottom: '18px',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                gap: '8px',
+                marginBottom: '12px',
               }}
             >
               {channelEpisodes.map((ep) => {
@@ -894,32 +894,32 @@ export default function AdminDashboardPage() {
                     style={{
                       backgroundColor: '#fff',
                       border: '1px solid #e2e8f0',
-                      borderRadius: '12px',
-                      padding: '14px 16px',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                      borderRadius: '9px',
+                      padding: '8px 10px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                     }}
                   >
-                    <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '3px' }}>
                       #{ep.order_no}
                     </div>
                     <div
                       style={{
-                        fontSize: '14px',
+                        fontSize: '12px',
                         fontWeight: 'bold',
                         color: '#1e3a5f',
-                        lineHeight: '1.6',
-                        marginBottom: '10px',
+                        lineHeight: '1.3',
+                        marginBottom: '5px',
                       }}
                     >
                       {ep.title}
                     </div>
-                    <div style={{ fontSize: '13px', color: '#166534', fontWeight: 'bold', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '11px', color: '#166534', fontWeight: 'bold', marginBottom: '4px' }}>
                       {count}/{total}名 視聴済み
                     </div>
                     <div
                       style={{
                         width: '100%',
-                        height: '8px',
+                        height: '5px',
                         backgroundColor: '#e2e8f0',
                         borderRadius: '999px',
                         overflow: 'hidden',
@@ -933,7 +933,7 @@ export default function AdminDashboardPage() {
                         }}
                       />
                     </div>
-                    <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                    <div style={{ marginTop: '4px', fontSize: '10px', color: '#64748b' }}>
                       進捗 {rate}%
                     </div>
                   </div>
@@ -941,14 +941,14 @@ export default function AdminDashboardPage() {
               })}
             </div>
 
-            <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '2px' }}>
                 対象社員の視聴状況
               </div>
-              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
+              <p style={{ margin: 0, fontSize: '11px', color: '#64748b', lineHeight: '1.35' }}>
                 {displayMode === 'watched'
-                  ? '視聴済みの社員だけを表示しています。並び順も上の条件から切り替えできます。横に長い表なので、左の「氏名・会社・所属」は固定しています。'
-                  : '並び順は上の条件から切り替えできます。横に長い表なので、左の「氏名・会社・所属」は固定しています。'}
+                  ? '視聴済みの社員だけを表示しています。左の「氏名・会社・所属」は固定しています。'
+                  : '横に長い表なので、左の「氏名・会社・所属」は固定しています。'}
               </p>
             </div>
 
@@ -956,9 +956,9 @@ export default function AdminDashboardPage() {
               style={{
                 backgroundColor: '#fff',
                 border: '1px solid #e2e8f0',
-                borderRadius: '12px',
+                borderRadius: '10px',
                 overflow: 'auto',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
               }}
             >
               <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: '1080px' }}>
@@ -966,10 +966,10 @@ export default function AdminDashboardPage() {
                   <tr style={{ backgroundColor: '#1e3a5f' }}>
                     <th
                       style={{
-                        padding: '14px 20px',
+                        padding: '12px 18px',
                         textAlign: 'left',
                         color: '#fff',
-                        fontSize: '13px',
+                        fontSize: '12px',
                         whiteSpace: 'nowrap',
                         position: 'sticky',
                         left: 0,
@@ -983,10 +983,10 @@ export default function AdminDashboardPage() {
                     </th>
                     <th
                       style={{
-                        padding: '14px 20px',
+                        padding: '12px 18px',
                         textAlign: 'left',
                         color: '#fff',
-                        fontSize: '13px',
+                        fontSize: '12px',
                         whiteSpace: 'nowrap',
                         position: 'sticky',
                         left: '160px',
@@ -1000,10 +1000,10 @@ export default function AdminDashboardPage() {
                     </th>
                     <th
                       style={{
-                        padding: '14px 20px',
+                        padding: '12px 18px',
                         textAlign: 'left',
                         color: '#fff',
-                        fontSize: '13px',
+                        fontSize: '12px',
                         whiteSpace: 'nowrap',
                         position: 'sticky',
                         left: '300px',
@@ -1017,13 +1017,13 @@ export default function AdminDashboardPage() {
                     </th>
                     <th
                       style={{
-                        padding: '14px 16px',
+                        padding: '12px 14px',
                         textAlign: 'center',
                         color: '#fff',
                         fontSize: '12px',
                         whiteSpace: 'nowrap',
                         backgroundColor: '#1e3a5f',
-                        minWidth: '110px',
+                        minWidth: '100px',
                       }}
                     >
                       未視聴数
@@ -1032,17 +1032,17 @@ export default function AdminDashboardPage() {
                       <th
                         key={ep.id}
                         style={{
-                          padding: '14px 16px',
+                          padding: '12px 14px',
                           textAlign: 'center',
                           color: '#fff',
-                          fontSize: '12px',
+                          fontSize: '11px',
                           whiteSpace: 'nowrap',
                           backgroundColor: '#1e3a5f',
-                          minWidth: '150px',
+                          minWidth: '140px',
                         }}
                       >
                         #{ep.order_no} {ep.title}
-                        <div style={{ fontSize: '11px', color: '#93c5fd', marginTop: '2px' }}>
+                        <div style={{ fontSize: '10px', color: '#93c5fd', marginTop: '2px' }}>
                           {watchedCount(ep.id)}/{companyEmployees.length}名視聴済
                         </div>
                       </th>
@@ -1064,9 +1064,9 @@ export default function AdminDashboardPage() {
                       >
                         <td
                           style={{
-                            padding: '12px 20px',
+                            padding: '10px 18px',
                             color: '#1e3a5f',
-                            fontSize: '14px',
+                            fontSize: '13px',
                             fontWeight: '500',
                             whiteSpace: 'nowrap',
                             position: 'sticky',
@@ -1082,9 +1082,9 @@ export default function AdminDashboardPage() {
                         </td>
                         <td
                           style={{
-                            padding: '12px 20px',
+                            padding: '10px 18px',
                             color: '#64748b',
-                            fontSize: '13px',
+                            fontSize: '12px',
                             whiteSpace: 'nowrap',
                             position: 'sticky',
                             left: '160px',
@@ -1099,9 +1099,9 @@ export default function AdminDashboardPage() {
                         </td>
                         <td
                           style={{
-                            padding: '12px 20px',
+                            padding: '10px 18px',
                             color: '#64748b',
-                            fontSize: '13px',
+                            fontSize: '12px',
                             whiteSpace: 'nowrap',
                             position: 'sticky',
                             left: '300px',
@@ -1116,21 +1116,21 @@ export default function AdminDashboardPage() {
                         </td>
                         <td
                           style={{
-                            padding: '12px 16px',
+                            padding: '10px 14px',
                             textAlign: 'center',
                             borderTop: '1px solid #e2e8f0',
-                            minWidth: '110px',
+                            minWidth: '100px',
                           }}
                         >
                           <span
                             style={{
                               display: 'inline-block',
-                              minWidth: '34px',
-                              padding: '4px 8px',
+                              minWidth: '30px',
+                              padding: '3px 7px',
                               borderRadius: '999px',
                               backgroundColor: unwatchedCount > 0 ? '#fee2e2' : '#dcfce7',
                               color: unwatchedCount > 0 ? '#b91c1c' : '#166534',
-                              fontSize: '12px',
+                              fontSize: '11px',
                               fontWeight: 'bold',
                             }}
                           >
@@ -1143,10 +1143,10 @@ export default function AdminDashboardPage() {
                             <td
                               key={ep.id}
                               style={{
-                                padding: '12px 16px',
+                                padding: '10px 14px',
                                 textAlign: 'center',
                                 borderTop: '1px solid #e2e8f0',
-                                minWidth: '150px',
+                                minWidth: '140px',
                               }}
                             >
                               {log ? (
@@ -1155,7 +1155,7 @@ export default function AdminDashboardPage() {
                                     style={{
                                       color: '#16a34a',
                                       fontWeight: 'bold',
-                                      fontSize: '14px',
+                                      fontSize: '13px',
                                     }}
                                   >
                                     ✅
@@ -1163,7 +1163,7 @@ export default function AdminDashboardPage() {
                                   <div
                                     style={{
                                       color: '#64748b',
-                                      fontSize: '11px',
+                                      fontSize: '10px',
                                       marginTop: '2px',
                                       whiteSpace: 'nowrap',
                                     }}
@@ -1172,7 +1172,7 @@ export default function AdminDashboardPage() {
                                   </div>
                                 </div>
                               ) : (
-                                <span style={{ color: '#ef4444', fontSize: '14px' }}>❌</span>
+                                <span style={{ color: '#ef4444', fontSize: '13px' }}>❌</span>
                               )}
                             </td>
                           )
@@ -1192,14 +1192,14 @@ export default function AdminDashboardPage() {
               backgroundColor: '#fff',
               border: '1px solid #e2e8f0',
               borderRadius: '12px',
-              padding: '40px',
+              padding: '32px',
               textAlign: 'center',
             }}
           >
-            <div style={{ color: '#1e3a5f', fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
+            <div style={{ color: '#1e3a5f', fontSize: '15px', fontWeight: 'bold', marginBottom: '8px' }}>
               表示できる社員がいません
             </div>
-            <p style={{ color: '#94a3b8', margin: 0, lineHeight: '1.7' }}>
+            <p style={{ color: '#94a3b8', margin: 0, lineHeight: '1.6', fontSize: '13px' }}>
               {displayMode === 'watched'
                 ? '今の条件では、視聴済みの社員が見つかりません。表示条件を「全員表示」に戻すと確認しやすいです。'
                 : displayMode === 'unwatched'
@@ -1215,14 +1215,14 @@ export default function AdminDashboardPage() {
               backgroundColor: '#fff',
               border: '1px solid #e2e8f0',
               borderRadius: '12px',
-              padding: '40px',
+              padding: '32px',
               textAlign: 'center',
             }}
           >
-            <div style={{ color: '#1e3a5f', fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
+            <div style={{ color: '#1e3a5f', fontSize: '15px', fontWeight: 'bold', marginBottom: '8px' }}>
               対象社員が見つかりません
             </div>
-            <p style={{ color: '#94a3b8', margin: 0, lineHeight: '1.7' }}>
+            <p style={{ color: '#94a3b8', margin: 0, lineHeight: '1.6', fontSize: '13px' }}>
               チャンネル対象設定と、今の絞り込み条件に合う社員がいません。<br />
               会社・所属・チャンネルの組み合わせを見直してください。
             </p>
@@ -1236,17 +1236,17 @@ export default function AdminDashboardPage() {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '60px',
+              padding: '42px',
               backgroundColor: '#fff',
               border: '1px solid #e2e8f0',
               borderRadius: '12px',
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '8px' }}>
+            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '8px' }}>
               チャンネルを選択してください
             </div>
-            <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0, lineHeight: '1.7' }}>
+            <p style={{ color: '#94a3b8', fontSize: '13px', margin: 0, lineHeight: '1.6' }}>
               上のプルダウン、またはチャンネル一覧のサムネイルからチャンネルを選ぶと、視聴状況を表示します。
             </p>
           </div>
@@ -1256,12 +1256,12 @@ export default function AdminDashboardPage() {
       <footer
         style={{
           borderTop: '1px solid #e2e8f0',
-          padding: '20px 40px',
+          padding: '16px 40px',
           textAlign: 'center',
-          marginTop: '40px',
+          marginTop: '32px',
         }}
       >
-        <p style={{ color: '#94a3b8', fontSize: '12px' }}>© 2026 MIRAI Group. ViewConfirm.</p>
+        <p style={{ color: '#94a3b8', fontSize: '11px' }}>© 2026 MIRAI Group. ViewConfirm.</p>
       </footer>
     </div>
   )
