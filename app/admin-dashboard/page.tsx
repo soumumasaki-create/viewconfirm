@@ -14,6 +14,7 @@ type Episode = { id: number; title: string; channel_id: number; order_no: number
 type Channel = {
   id: number
   title: string
+  thumbnail_url?: string
   target_scope?: string
   target_companies?: string[]
   target_affiliations?: string[]
@@ -284,8 +285,18 @@ export default function AdminDashboardPage() {
     return '全員表示'
   }
 
+  const selectChannelFromCard = (channelId: number) => {
+    setSelectedChannelId(channelId)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const renderConditionBadges = () => {
     const badges = [
+      {
+        label: `チャンネル: ${selectedChannel?.title || '未選択'}`,
+        bg: '#dcfce7',
+        color: '#166534',
+      },
       {
         label: `会社: ${selectedCompany?.name || '全社員'}`,
         bg: '#dbeafe',
@@ -307,14 +318,6 @@ export default function AdminDashboardPage() {
         color: '#6d28d9',
       },
     ]
-
-    if (selectedChannel) {
-      badges.push({
-        label: `チャンネル: ${selectedChannel.title}`,
-        bg: '#dcfce7',
-        color: '#166534',
-      })
-    }
 
     return (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '14px' }}>
@@ -410,7 +413,7 @@ export default function AdminDashboardPage() {
               絞り込み条件
             </div>
             <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
-              会社・所属・チャンネルを選ぶと、対象社員の視聴状況を下に表示します。
+              まずチャンネルを選び、そのあと会社・所属で対象社員を絞り込めます。下のチャンネル一覧サムネイルからも選択できます。
             </p>
             {renderConditionBadges()}
           </div>
@@ -432,7 +435,41 @@ export default function AdminDashboardPage() {
                   fontWeight: '600',
                 }}
               >
-                ① 会社を選択（任意）
+                ① チャンネルを選択
+              </label>
+              <select
+                value={selectedChannelId ?? ''}
+                onChange={(e) => setSelectedChannelId(e.target.value ? Number(e.target.value) : null)}
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '15px',
+                  color: '#0f172a',
+                  backgroundColor: '#f8fafc',
+                }}
+              >
+                <option value="">チャンネルを選んでください</option>
+                {channels.map((ch) => (
+                  <option key={ch.id} value={ch.id}>
+                    {ch.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label
+                style={{
+                  fontSize: '13px',
+                  color: '#475569',
+                  marginBottom: '6px',
+                  display: 'block',
+                  fontWeight: '600',
+                }}
+              >
+                ② 会社を選択（任意）
               </label>
               <select
                 value={selectedCompanyId ?? ''}
@@ -466,7 +503,7 @@ export default function AdminDashboardPage() {
                   fontWeight: '600',
                 }}
               >
-                ② 所属を選択（任意）
+                ③ 所属を選択（任意）
               </label>
               <select
                 value={selectedAffiliation}
@@ -485,40 +522,6 @@ export default function AdminDashboardPage() {
                 {affiliationOptions.map((affiliation) => (
                   <option key={affiliation} value={affiliation}>
                     {affiliation}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label
-                style={{
-                  fontSize: '13px',
-                  color: '#475569',
-                  marginBottom: '6px',
-                  display: 'block',
-                  fontWeight: '600',
-                }}
-              >
-                ③ チャンネルを選択
-              </label>
-              <select
-                value={selectedChannelId ?? ''}
-                onChange={(e) => setSelectedChannelId(e.target.value ? Number(e.target.value) : null)}
-                style={{
-                  width: '100%',
-                  padding: '11px 14px',
-                  borderRadius: '10px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '15px',
-                  color: '#0f172a',
-                  backgroundColor: '#f8fafc',
-                }}
-              >
-                <option value="">チャンネルを選んでください</option>
-                {channels.map((ch) => (
-                  <option key={ch.id} value={ch.id}>
-                    {ch.title}
                   </option>
                 ))}
               </select>
@@ -624,6 +627,120 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
+        <div
+          style={{
+            backgroundColor: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '16px',
+            padding: '24px',
+            marginBottom: '28px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          }}
+        >
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '6px' }}>
+              チャンネル一覧から選択
+            </div>
+            <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
+              サムネイルをクリックすると、そのチャンネルの視聴状況を表示します。上のプルダウンと同じ選択になります。
+            </p>
+          </div>
+
+          {channels.length === 0 ? (
+            <p style={{ color: '#94a3b8', margin: 0 }}>チャンネルがまだありません</p>
+          ) : (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                gap: '14px',
+              }}
+            >
+              {channels.map((ch) => {
+                const isSelected = selectedChannelId === ch.id
+
+                return (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    onClick={() => selectChannelFromCard(ch.id)}
+                    style={{
+                      padding: 0,
+                      textAlign: 'left',
+                      backgroundColor: '#fff',
+                      border: isSelected ? '3px solid #2563eb' : '1px solid #e2e8f0',
+                      borderRadius: '14px',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      boxShadow: isSelected
+                        ? '0 4px 14px rgba(37,99,235,0.22)'
+                        : '0 1px 3px rgba(0,0,0,0.05)',
+                    }}
+                  >
+                    {ch.thumbnail_url ? (
+                      <img
+                        src={ch.thumbnail_url}
+                        alt={ch.title}
+                        style={{
+                          width: '100%',
+                          aspectRatio: '16/9',
+                          objectFit: 'contain',
+                          backgroundColor: '#f1f5f9',
+                          display: 'block',
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: '100%',
+                          aspectRatio: '16/9',
+                          backgroundColor: '#1e3a5f',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '24px',
+                          color: '#fff',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        CH
+                      </div>
+                    )}
+
+                    <div style={{ padding: '12px 14px' }}>
+                      <div
+                        style={{
+                          fontSize: '14px',
+                          fontWeight: 'bold',
+                          color: '#1e3a5f',
+                          lineHeight: '1.5',
+                        }}
+                      >
+                        {ch.title}
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop: '8px',
+                          display: 'inline-block',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          padding: '4px 8px',
+                          borderRadius: '999px',
+                          backgroundColor: isSelected ? '#dbeafe' : '#f1f5f9',
+                          color: isSelected ? '#1d4ed8' : '#64748b',
+                        }}
+                      >
+                        {isSelected ? '選択中' : 'クリックして選択'}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
         {selectedChannelId && companyEmployees.length > 0 && (
           <>
             <div
@@ -650,11 +767,11 @@ export default function AdminDashboardPage() {
                   現在の表示条件
                 </div>
                 <div style={{ fontSize: '14px', lineHeight: '1.8' }}>
+                  <strong>チャンネル：</strong>{selectedChannel?.title}
+                  <span style={{ margin: '0 12px', color: '#93c5fd' }}>|</span>
                   <strong>会社：</strong>{selectedCompany?.name || '全社員'}
                   <span style={{ margin: '0 12px', color: '#93c5fd' }}>|</span>
                   <strong>所属：</strong>{selectedAffiliation || '全所属'}
-                  <span style={{ margin: '0 12px', color: '#93c5fd' }}>|</span>
-                  <strong>チャンネル：</strong>{selectedChannel?.title}
                 </div>
                 <div style={{ marginTop: '8px', fontSize: '13px', color: '#bfdbfe' }}>
                   対象社員 {companyEmployees.length}名 ／ 表示中 {displayedEmployees.length}名
@@ -1175,7 +1292,7 @@ export default function AdminDashboardPage() {
               チャンネルを選択してください
             </div>
             <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0, lineHeight: '1.7' }}>
-              上の絞り込み条件からチャンネルを選ぶと、視聴状況を表示します。
+              上のプルダウン、またはチャンネル一覧のサムネイルからチャンネルを選ぶと、視聴状況を表示します。
             </p>
           </div>
         )}
