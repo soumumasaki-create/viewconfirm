@@ -407,13 +407,29 @@ export default function EpisodesPage() {
             </div>
           </div>
         </div>
-
-        <a href="/" style={{ color: '#93c5fd', fontSize: '13px', textDecoration: 'none' }}>
-          ← トップに戻る
-        </a>
       </header>
 
       <main style={{ padding: '40px', maxWidth: '900px', margin: '0 auto' }}>
+        <a
+          href="/"
+          style={{
+            display: 'inline-block',
+            marginBottom: '18px',
+            padding: '10px 18px',
+            backgroundColor: '#dc2626',
+            color: '#fff',
+            border: '1px solid #b91c1c',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            textDecoration: 'none',
+            boxShadow: '0 2px 6px rgba(220,38,38,0.25)',
+          }}
+        >
+          ← トップに戻る
+        </a>
+
         <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '32px' }}>
           🎬 動画管理
         </h1>
