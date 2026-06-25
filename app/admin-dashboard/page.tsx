@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
 type Company = { id: number; name: string }
@@ -84,6 +84,8 @@ export default function AdminDashboardPage() {
     'unwatched_desc'
   )
   const [canDownloadCsv, setCanDownloadCsv] = useState(false)
+
+  const currentConditionRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -287,7 +289,13 @@ export default function AdminDashboardPage() {
 
   const selectChannelFromCard = (channelId: number) => {
     setSelectedChannelId(channelId)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    setTimeout(() => {
+      currentConditionRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }, 100)
   }
 
   const renderConditionBadges = () => {
@@ -320,15 +328,15 @@ export default function AdminDashboardPage() {
     ]
 
     return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '14px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
         {badges.map((badge) => (
           <span
             key={badge.label}
             style={{
               display: 'inline-block',
-              fontSize: '12px',
+              fontSize: '11px',
               fontWeight: 'bold',
-              padding: '6px 10px',
+              padding: '5px 9px',
               borderRadius: '999px',
               backgroundColor: badge.bg,
               color: badge.color,
@@ -346,6 +354,24 @@ export default function AdminDashboardPage() {
   const overallRate =
     totalPossibleViews === 0 ? 0 : Math.round((totalCompletedViews / totalPossibleViews) * 100)
   const remainingViews = totalPossibleViews - totalCompletedViews
+
+  const filterSelectStyle = {
+    width: '100%',
+    padding: '8px 10px',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
+    fontSize: '14px',
+    color: '#0f172a',
+    backgroundColor: '#f8fafc',
+  }
+
+  const filterLabelStyle = {
+    fontSize: '12px',
+    color: '#475569',
+    marginBottom: '5px',
+    display: 'block',
+    fontWeight: '700',
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
@@ -381,18 +407,35 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
-        <a href="/" style={{ color: '#93c5fd', fontSize: '13px', textDecoration: 'none' }}>
-          ← トップに戻る
-        </a>
       </header>
 
-      <main style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
+      <main style={{ padding: '28px 40px 40px', maxWidth: '1200px', margin: '0 auto' }}>
+        <a
+          href="/"
+          style={{
+            display: 'inline-block',
+            marginBottom: '18px',
+            padding: '10px 18px',
+            backgroundColor: '#dc2626',
+            color: '#fff',
+            border: '1px solid #b91c1c',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            textDecoration: 'none',
+            boxShadow: '0 2px 6px rgba(220,38,38,0.25)',
+          }}
+        >
+          ← トップに戻る
+        </a>
+
         <h1
           style={{
             fontSize: '22px',
             fontWeight: 'bold',
             color: '#1e3a5f',
-            marginBottom: '24px',
+            marginBottom: '18px',
           }}
         >
           📊 視聴状況ダッシュボード
@@ -402,18 +445,18 @@ export default function AdminDashboardPage() {
           style={{
             backgroundColor: '#ffffff',
             border: '1px solid #dbeafe',
-            borderRadius: '16px',
-            padding: '28px',
-            marginBottom: '28px',
-            boxShadow: '0 4px 14px rgba(30,58,95,0.06)',
+            borderRadius: '14px',
+            padding: '16px',
+            marginBottom: '20px',
+            boxShadow: '0 3px 10px rgba(30,58,95,0.05)',
           }}
         >
-          <div style={{ marginBottom: '18px' }}>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '6px' }}>
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
               絞り込み条件
             </div>
-            <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.7' }}>
-              まずチャンネルを選び、そのあと会社・所属で対象社員を絞り込めます。下のチャンネル一覧サムネイルからも選択できます。
+            <p style={{ margin: 0, fontSize: '12px', color: '#64748b', lineHeight: '1.5' }}>
+              チャンネル・会社・所属を選んで視聴状況を絞り込みます。
             </p>
             {renderConditionBadges()}
           </div>
@@ -421,34 +464,17 @@ export default function AdminDashboardPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
-              gap: '20px',
+              gridTemplateColumns: '1.3fr 1fr 1fr',
+              gap: '12px',
+              marginBottom: '12px',
             }}
           >
             <div>
-              <label
-                style={{
-                  fontSize: '13px',
-                  color: '#475569',
-                  marginBottom: '6px',
-                  display: 'block',
-                  fontWeight: '600',
-                }}
-              >
-                ① チャンネルを選択
-              </label>
+              <label style={filterLabelStyle}>① チャンネルを選択</label>
               <select
                 value={selectedChannelId ?? ''}
                 onChange={(e) => setSelectedChannelId(e.target.value ? Number(e.target.value) : null)}
-                style={{
-                  width: '100%',
-                  padding: '11px 14px',
-                  borderRadius: '10px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '15px',
-                  color: '#0f172a',
-                  backgroundColor: '#f8fafc',
-                }}
+                style={filterSelectStyle}
               >
                 <option value="">チャンネルを選んでください</option>
                 {channels.map((ch) => (
@@ -460,29 +486,11 @@ export default function AdminDashboardPage() {
             </div>
 
             <div>
-              <label
-                style={{
-                  fontSize: '13px',
-                  color: '#475569',
-                  marginBottom: '6px',
-                  display: 'block',
-                  fontWeight: '600',
-                }}
-              >
-                ② 会社を選択（任意）
-              </label>
+              <label style={filterLabelStyle}>② 会社を選択</label>
               <select
                 value={selectedCompanyId ?? ''}
                 onChange={(e) => setSelectedCompanyId(e.target.value ? Number(e.target.value) : null)}
-                style={{
-                  width: '100%',
-                  padding: '11px 14px',
-                  borderRadius: '10px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '15px',
-                  color: '#0f172a',
-                  backgroundColor: '#f8fafc',
-                }}
+                style={filterSelectStyle}
               >
                 <option value="">全社員</option>
                 {companies.map((c) => (
@@ -494,29 +502,11 @@ export default function AdminDashboardPage() {
             </div>
 
             <div>
-              <label
-                style={{
-                  fontSize: '13px',
-                  color: '#475569',
-                  marginBottom: '6px',
-                  display: 'block',
-                  fontWeight: '600',
-                }}
-              >
-                ③ 所属を選択（任意）
-              </label>
+              <label style={filterLabelStyle}>③ 所属を選択</label>
               <select
                 value={selectedAffiliation}
                 onChange={(e) => setSelectedAffiliation(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '11px 14px',
-                  borderRadius: '10px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '15px',
-                  color: '#0f172a',
-                  backgroundColor: '#f8fafc',
-                }}
+                style={filterSelectStyle}
               >
                 <option value="">全所属</option>
                 {affiliationOptions.map((affiliation) => (
@@ -530,7 +520,6 @@ export default function AdminDashboardPage() {
 
           <div
             style={{
-              marginTop: '16px',
               display: 'grid',
               gridTemplateColumns: '1fr 1fr auto',
               gap: '12px',
@@ -538,29 +527,11 @@ export default function AdminDashboardPage() {
             }}
           >
             <div>
-              <label
-                style={{
-                  fontSize: '14px',
-                  color: '#334155',
-                  fontWeight: '600',
-                  display: 'block',
-                  marginBottom: '6px',
-                }}
-              >
-                表示条件
-              </label>
+              <label style={filterLabelStyle}>表示条件</label>
               <select
                 value={displayMode}
                 onChange={(e) => setDisplayMode(e.target.value as 'all' | 'unwatched' | 'watched')}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '10px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '14px',
-                  color: '#0f172a',
-                  backgroundColor: '#f8fafc',
-                }}
+                style={filterSelectStyle}
               >
                 <option value="all">全員表示</option>
                 <option value="unwatched">未視聴がある社員だけ表示</option>
@@ -569,17 +540,7 @@ export default function AdminDashboardPage() {
             </div>
 
             <div>
-              <label
-                style={{
-                  fontSize: '14px',
-                  color: '#334155',
-                  fontWeight: '600',
-                  display: 'block',
-                  marginBottom: '6px',
-                }}
-              >
-                並び順
-              </label>
+              <label style={filterLabelStyle}>並び順</label>
               <select
                 value={sortMode}
                 onChange={(e) =>
@@ -590,15 +551,7 @@ export default function AdminDashboardPage() {
                       | 'company_affiliation_name'
                   )
                 }
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '10px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '14px',
-                  color: '#0f172a',
-                  backgroundColor: '#f8fafc',
-                }}
+                style={filterSelectStyle}
               >
                 <option value="unwatched_desc">
                   {displayMode === 'watched' ? '視聴済み数が多い順' : '未視聴数が多い順'}
@@ -611,15 +564,15 @@ export default function AdminDashboardPage() {
             <button
               onClick={clearFilters}
               style={{
-                padding: '10px 16px',
+                padding: '8px 14px',
                 backgroundColor: '#f1f5f9',
                 color: '#475569',
                 border: '1px solid #cbd5e1',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 cursor: 'pointer',
-                fontSize: '14px',
+                fontSize: '13px',
                 fontWeight: 'bold',
-                height: '42px',
+                height: '38px',
               }}
             >
               条件をクリア
@@ -744,6 +697,7 @@ export default function AdminDashboardPage() {
         {selectedChannelId && companyEmployees.length > 0 && (
           <>
             <div
+              ref={currentConditionRef}
               style={{
                 display: 'flex',
                 alignItems: 'stretch',
@@ -751,6 +705,7 @@ export default function AdminDashboardPage() {
                 gap: '16px',
                 marginBottom: '16px',
                 flexWrap: 'wrap',
+                scrollMarginTop: '20px',
               }}
             >
               <div
