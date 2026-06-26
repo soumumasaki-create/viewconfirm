@@ -11,6 +11,7 @@ type Channel = {
 type Episode = {
   id: number
   title: string
+  description: string | null
   video_url: string
   channel_id: number
   order_no: number
@@ -79,6 +80,7 @@ export default function EpisodesPage() {
 
   const [channelId, setChannelId] = useState('')
   const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
   const [orderNo, setOrderNo] = useState('')
   const [targetScope, setTargetScope] = useState('channel')
@@ -155,6 +157,7 @@ export default function EpisodesPage() {
     setEditingId(null)
     setChannelId('')
     setTitle('')
+    setDescription('')
     setVideoUrl('')
     setOrderNo('')
     setTargetScope('channel')
@@ -182,6 +185,7 @@ export default function EpisodesPage() {
 
     const payload = {
       title,
+      description,
       video_url: normalizeVideoUrl(videoUrl),
       channel_id: Number(channelId),
       order_no: Number(orderNo),
@@ -208,6 +212,7 @@ export default function EpisodesPage() {
     setEditingId(ep.id)
     setChannelId(String(ep.channel_id))
     setTitle(ep.title || '')
+    setDescription(ep.description || '')
     setVideoUrl(ep.video_url || '')
     setOrderNo(String(ep.order_no ?? ''))
     setTargetScope(ep.target_scope || 'channel')
@@ -544,6 +549,40 @@ export default function EpisodesPage() {
                 boxSizing: 'border-box',
               }}
             />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label
+              style={{
+                fontSize: '13px',
+                color: '#475569',
+                marginBottom: '6px',
+                display: 'block',
+              }}
+            >
+              内容
+            </label>
+            <textarea
+              placeholder="この動画・資料の内容を入力"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '15px',
+                color: '#0f172a',
+                backgroundColor: '#f8fafc',
+                boxSizing: 'border-box',
+                resize: 'vertical',
+                lineHeight: 1.6,
+              }}
+            />
+            <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b', lineHeight: 1.6 }}>
+              入力した内容は、社員が動画を見る画面でタイトルの下に表示されます。
+            </div>
           </div>
 
           <div style={{ marginBottom: '16px' }}>
@@ -913,6 +952,21 @@ export default function EpisodesPage() {
                       <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: 'auto' }}>登録済み</span>
                     )}
                   </div>
+
+                  {ep.description && (
+                    <div
+                      style={{
+                        paddingLeft: '44px',
+                        marginBottom: '10px',
+                        color: '#475569',
+                        fontSize: '13px',
+                        lineHeight: 1.7,
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
+                      {ep.description}
+                    </div>
+                  )}
 
                   <div style={{ paddingLeft: '44px', marginBottom: '10px' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>

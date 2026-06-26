@@ -52,6 +52,7 @@ type Channel = {
 type Episode = {
   id: number
   title: string
+  description: string | null
   video_url: string
   channel_id: number
   order_no: number
@@ -1348,7 +1349,7 @@ export default function WatchPage() {
                     cursor: isLocked ? 'not-allowed' : 'pointer',
                     opacity: isLocked ? 0.5 : 1,
                     display: 'flex',
-                    alignItems: 'center',
+                    alignItems: 'flex-start',
                     gap: '12px',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                   }}
@@ -1371,17 +1372,32 @@ export default function WatchPage() {
                     {isWatched ? 'OK' : isDocument ? '資' : '▶'}
                   </div>
 
-                  <span
-                    style={{
-                      fontSize: '15px',
-                      color: '#1e3a5f',
-                      fontWeight: '500',
-                      flex: 1,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    第{ep.order_no}回　{ep.title}
-                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        fontSize: '15px',
+                        color: '#1e3a5f',
+                        fontWeight: '500',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      第{ep.order_no}回　{ep.title}
+                    </div>
+
+                    {ep.description && (
+                      <div
+                        style={{
+                          marginTop: '4px',
+                          fontSize: '12px',
+                          color: '#64748b',
+                          lineHeight: 1.6,
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
+                        {ep.description}
+                      </div>
+                    )}
+                  </div>
 
                   <span
                     style={{
@@ -1451,6 +1467,25 @@ export default function WatchPage() {
               >
                 第{selectedEpisode.order_no}回　{selectedEpisode.title}
               </h2>
+
+              {selectedEpisode.description && (
+                <div
+                  style={{
+                    marginBottom: '10px',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    color: '#334155',
+                    fontSize: '13px',
+                    lineHeight: 1.7,
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  {selectedEpisode.description}
+                </div>
+              )}
+
               <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7 }}>
                 {selectedEpisode.content_type === 'document'
                   ? '資料を確認したあと、下の完了ボタンを押してください。'
