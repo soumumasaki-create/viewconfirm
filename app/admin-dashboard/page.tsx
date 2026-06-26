@@ -172,6 +172,11 @@ export default function AdminDashboardPage() {
     return channelEpisodes.filter((ep) => getWatchLog(fullName, ep.id)).length
   }
 
+  const getUnwatchedEpisodesByEmployee = (emp: Employee) => {
+    const fullName = emp.last_name + ' ' + emp.first_name
+    return channelEpisodes.filter((ep) => !getWatchLog(fullName, ep.id))
+  }
+
   const hasUnwatchedEpisode = (emp: Employee) => {
     return getUnwatchedCount(emp) > 0
   }
@@ -221,6 +226,26 @@ export default function AdminDashboardPage() {
 
     return aName.localeCompare(bName, 'ja')
   })
+
+  const unwatchedEmployees = companyEmployees
+    .map((emp) => ({
+      employee: emp,
+      fullName: emp.last_name + ' ' + emp.first_name,
+      unwatchedEpisodes: getUnwatchedEpisodesByEmployee(emp),
+    }))
+    .filter((item) => item.unwatchedEpisodes.length > 0)
+    .sort((a, b) => {
+      const countDiff = b.unwatchedEpisodes.length - a.unwatchedEpisodes.length
+      if (countDiff !== 0) return countDiff
+
+      const companyDiff = a.employee.company.localeCompare(b.employee.company, 'ja')
+      if (companyDiff !== 0) return companyDiff
+
+      const affiliationDiff = (a.employee.affiliation || '').localeCompare(b.employee.affiliation || '', 'ja')
+      if (affiliationDiff !== 0) return affiliationDiff
+
+      return a.fullName.localeCompare(b.fullName, 'ja')
+    })
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
@@ -864,6 +889,111 @@ export default function AdminDashboardPage() {
                   件
                 </div>
               </div>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: '#fff',
+                border: '1px solid #fecaca',
+                borderRadius: '10px',
+                padding: '12px',
+                marginBottom: '12px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '8px' }}>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#991b1b', marginBottom: '2px' }}>
+                    未視聴者一覧
+                  </div>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#64748b', lineHeight: '1.35' }}>
+                    未視聴が残っている社員と、未視聴の動画名を一覧で確認できます。
+                  </p>
+                </div>
+                <div
+                  style={{
+                    minWidth: '86px',
+                    padding: '8px 10px',
+                    borderRadius: '9px',
+                    backgroundColor: '#fef2f2',
+                    color: '#b91c1c',
+                    textAlign: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '13px',
+                  }}
+                >
+                  {unwatchedEmployees.length}名
+                </div>
+              </div>
+
+              {unwatchedEmployees.length === 0 ? (
+                <div
+                  style={{
+                    padding: '14px',
+                    borderRadius: '9px',
+                    backgroundColor: '#f0fdf4',
+                    color: '#166534',
+                    fontSize: '13px',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  今の条件では未視聴者はいません。
+                </div>
+              ) : (
+                <div style={{ overflow: 'auto', border: '1px solid #fee2e2', borderRadius: '9px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '760px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#991b1b' }}>
+                        <th style={{ padding: '9px 12px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>氏名</th>
+                        <th style={{ padding: '9px 12px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>会社</th>
+                        <th style={{ padding: '9px 12px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>所属</th>
+                        <th style={{ padding: '9px 12px', color: '#fff', fontSize: '12px', textAlign: 'center' }}>未視聴数</th>
+                        <th style={{ padding: '9px 12px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>未視聴の動画</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {unwatchedEmployees.map((item, i) => (
+                        <tr
+                          key={item.employee.id}
+                          style={{
+                            backgroundColor: i % 2 === 0 ? '#fff' : '#fff7f7',
+                            borderTop: '1px solid #fee2e2',
+                          }}
+                        >
+                          <td style={{ padding: '9px 12px', color: '#1e3a5f', fontSize: '13px', fontWeight: 'bold' }}>
+                            {item.fullName}
+                          </td>
+                          <td style={{ padding: '9px 12px', color: '#64748b', fontSize: '12px' }}>
+                            {item.employee.company}
+                          </td>
+                          <td style={{ padding: '9px 12px', color: '#64748b', fontSize: '12px' }}>
+                            {item.employee.affiliation || '-'}
+                          </td>
+                          <td style={{ padding: '9px 12px', textAlign: 'center' }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                minWidth: '28px',
+                                padding: '3px 7px',
+                                borderRadius: '999px',
+                                backgroundColor: '#fee2e2',
+                                color: '#b91c1c',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                              }}
+                            >
+                              {item.unwatchedEpisodes.length}
+                            </span>
+                          </td>
+                          <td style={{ padding: '9px 12px', color: '#334155', fontSize: '12px', lineHeight: 1.6 }}>
+                            {item.unwatchedEpisodes.map((ep) => `#${ep.order_no} ${ep.title}`).join(' ／ ')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             <div style={{ marginBottom: '8px' }}>
