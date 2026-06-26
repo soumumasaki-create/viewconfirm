@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
 type Employee = {
@@ -11,13 +11,12 @@ type Employee = {
   affiliation: string | null
   created_at: string
   email?: string | null
-  employee_code?: string | null
   is_active?: boolean | null
 }
 
 type ImportEmployeeRow = {
   rowNumber: number
-  employee_code: string
+  existing_id: number | null
   last_name: string
   first_name: string
   company: string
@@ -36,7 +35,7 @@ const AFFILIATIONS_BY_COMPANY: Record<string, string[]> = {
   みらい: ['事務職', '管理職'],
 }
 
-const REQUIRED_CSV_HEADERS = ['社員番号', '会社名', '所属・職種', '氏名', '利用可否']
+const REQUIRED_CSV_HEADERS = ['会社名', '所属・職種', '氏名', '利用可否']
 
 export default function AdminEmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
@@ -95,9 +94,14 @@ export default function AdminEmployeesPage() {
 
   const availableAffiliations = company ? AFFILIATIONS_BY_COMPANY[company] || [] : []
 
-  const employeeCodeSet = useMemo(() => {
-    return new Set(employees.map((emp) => (emp.employee_code || '').trim()).filter(Boolean))
-  }, [employees])
+  const makeEmployeeKey = (targetCompany: string, targetLastName: string, targetFirstName: string) => {
+    return `${targetCompany.trim()}::${targetLastName.trim()}::${targetFirstName.trim()}`
+  }
+
+  const findExistingEmployee = (targetCompany: string, targetLastName: string, targetFirstName: string) => {
+    const key = makeEmployeeKey(targetCompany, targetLastName, targetFirstName)
+    return employees.find((emp) => makeEmployeeKey(emp.company || '', emp.last_name || '', emp.first_name || '') === key)
+  }
 
   const csvEscape = (value: string | number | boolean | null | undefined) => {
     const text = value === null || value === undefined ? '' : String(value)
@@ -123,19 +127,18 @@ export default function AdminEmployeesPage() {
 
   const handleDownloadTemplate = () => {
     downloadCsv('viewconfirm_employee_import_template.csv', [
-      ['社員番号', '会社名', '所属・職種', '氏名', '利用可否', '取込結果メモ'],
-      ['TK001', '高見起業', 'ドライバー', '山田 太郎', '有効', '例：この列はアプリでは読み込まない'],
-      ['TH001', 'タイホー荷役', 'リフトオペレーター', '佐藤 花子', '有効', ''],
-      ['MS001', 'みらい', '管理職', '鈴木 一郎', '有効', ''],
-      ['TK002', '高見起業', 'リフトオペレーター', 'リフト 乗る太郎', '有効', ''],
+      ['会社名', '所属・職種', '氏名', '利用可否', '取込結果メモ'],
+      ['高見起業', 'ドライバー', '山田 太郎', '有効', '例：この列はアプリでは読み込まない'],
+      ['タイホー荷役', 'リフトオペレーター', '佐藤 花子', '有効', ''],
+      ['みらい', '管理職', '鈴木 一郎', '有効', ''],
+      ['高見起業', 'リフトオペレーター', 'リフト 乗る太郎', '有効', ''],
     ])
   }
 
   const handleDownloadEmployees = () => {
     const rows = [
-      ['社員番号', '会社名', '所属・職種', '氏名', '利用可否', '取込結果メモ'],
+      ['会社名', '所属・職種', '氏名', '利用可否', '取込結果メモ'],
       ...employees.map((emp) => [
-        emp.employee_code || '',
         emp.company || '',
         emp.affiliation || '',
         `${emp.last_name || ''} ${emp.first_name || ''}`.trim(),
@@ -351,29 +354,29 @@ export default function AdminEmployeesPage() {
   }
 
   const validateImportRows = (rawRows: Record<string, string>[]) => {
-    const seenEmployeeCodes = new Set<string>()
+    const seenEmployeeKeys = new Set<string>()
 
     return rawRows.map((rawRow, index) => {
       const rowNumber = index + 2
-      const employeeCode = (rawRow['社員番号'] || '').trim()
       const fullName = (rawRow['氏名'] || '').trim()
       const { lastName: rowLastName, firstName: rowFirstName } = splitFullName(fullName)
       const rowCompany = (rawRow['会社名'] || '').trim()
       const rowAffiliation = (rawRow['所属・職種'] || '').trim()
       const activeResult = convertActiveLabel(rawRow['利用可否'] || '')
       const errors: string[] = []
+      const existingEmployee = findExistingEmployee(rowCompany, rowLastName, rowFirstName)
+      const employeeKey = makeEmployeeKey(rowCompany, rowLastName, rowFirstName)
 
-      if (!employeeCode) errors.push('社員番号が空欄です')
       if (!fullName) errors.push('氏名が空欄です')
       if (fullName && !rowFirstName) errors.push('氏名は「姓 名」のように姓と名の間にスペースを入れてください')
       if (!rowCompany) errors.push('会社名が空欄です')
       if (!rowAffiliation) errors.push('所属・職種が空欄です')
 
-      if (employeeCode) {
-        if (seenEmployeeCodes.has(employeeCode)) {
-          errors.push('CSV内で社員番号が重複しています')
+      if (rowCompany && rowLastName && rowFirstName) {
+        if (seenEmployeeKeys.has(employeeKey)) {
+          errors.push('CSV内で同じ会社・氏名が重複しています')
         }
-        seenEmployeeCodes.add(employeeCode)
+        seenEmployeeKeys.add(employeeKey)
       }
 
       if (rowCompany && !companies.includes(rowCompany)) {
@@ -391,14 +394,14 @@ export default function AdminEmployeesPage() {
 
       return {
         rowNumber,
-        employee_code: employeeCode,
+        existing_id: existingEmployee?.id || null,
         last_name: rowLastName,
         first_name: rowFirstName,
         company: rowCompany,
         affiliation: rowAffiliation,
         is_active: activeResult.boolValue,
         is_active_label: activeResult.label || '有効',
-        action: employeeCode && employeeCodeSet.has(employeeCode) ? '更新' : '新規登録',
+        action: existingEmployee ? '更新' : '新規登録',
         errors,
       } as ImportEmployeeRow
     })
@@ -468,7 +471,6 @@ export default function AdminEmployeesPage() {
 
     for (const row of validRows) {
       const payload = {
-        employee_code: row.employee_code,
         last_name: row.last_name,
         first_name: row.first_name,
         company: row.company,
@@ -476,8 +478,8 @@ export default function AdminEmployeesPage() {
         is_active: row.is_active,
       }
 
-      if (row.action === '更新') {
-        const { error } = await supabase.from('employees').update(payload).eq('employee_code', row.employee_code)
+      if (row.action === '更新' && row.existing_id) {
+        const { error } = await supabase.from('employees').update(payload).eq('id', row.existing_id)
 
         if (error) {
           setImportMessage('❌ ' + row.rowNumber + '行目でエラー: ' + error.message)
@@ -591,7 +593,7 @@ export default function AdminEmployeesPage() {
 
           <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7, marginBottom: '16px' }}>
             Excelで社員一覧を作成し、CSV形式で保存してから取り込んでください。
-            必要な列は「社員番号、会社名、所属・職種、氏名、利用可否」です。
+            必要な列は「会社名、所属・職種、氏名、利用可否」です。
             利用可否は「有効」または「無効」で入力してください。
           </p>
 
@@ -684,11 +686,10 @@ export default function AdminEmployeesPage() {
           {importRows.length > 0 && (
             <div>
               <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '16px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '780px' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#334155' }}>
                       <th style={{ padding: '10px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>行</th>
-                      <th style={{ padding: '10px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>社員番号</th>
                       <th style={{ padding: '10px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>氏名</th>
                       <th style={{ padding: '10px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>会社名</th>
                       <th style={{ padding: '10px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>所属・職種</th>
@@ -707,7 +708,6 @@ export default function AdminEmployeesPage() {
                         }}
                       >
                         <td style={{ padding: '10px', fontSize: '13px', color: '#475569' }}>{row.rowNumber}</td>
-                        <td style={{ padding: '10px', fontSize: '13px', color: '#0f172a' }}>{row.employee_code}</td>
                         <td style={{ padding: '10px', fontSize: '13px', color: '#0f172a' }}>
                           {row.last_name} {row.first_name}
                         </td>
@@ -915,7 +915,6 @@ export default function AdminEmployeesPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ backgroundColor: '#1e3a5f' }}>
-                <th style={{ padding: '14px 20px', textAlign: 'left', color: '#fff', fontSize: '13px' }}>社員番号</th>
                 <th style={{ padding: '14px 20px', textAlign: 'left', color: '#fff', fontSize: '13px' }}>氏名</th>
                 <th style={{ padding: '14px 20px', textAlign: 'left', color: '#fff', fontSize: '13px' }}>会社名</th>
                 <th style={{ padding: '14px 20px', textAlign: 'left', color: '#fff', fontSize: '13px' }}>所属</th>
@@ -926,7 +925,7 @@ export default function AdminEmployeesPage() {
             <tbody>
               {employees.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
+                  <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
                     社員が登録されていません
                   </td>
                 </tr>
@@ -939,9 +938,6 @@ export default function AdminEmployeesPage() {
                     borderTop: '1px solid #e2e8f0',
                   }}
                 >
-                  <td style={{ padding: '14px 20px', color: '#64748b', fontSize: '14px' }}>
-                    {emp.employee_code || '-'}
-                  </td>
                   <td style={{ padding: '14px 20px', color: '#1e3a5f', fontSize: '14px', fontWeight: '500' }}>
                     {emp.last_name} {emp.first_name}
                   </td>
