@@ -41,6 +41,25 @@ type Badge = {
   color: string
 }
 
+const inputStyle = {
+  width: '100%',
+  padding: '8px 10px',
+  borderRadius: '7px',
+  border: '1px solid #cbd5e1',
+  fontSize: '14px',
+  color: '#0f172a',
+  backgroundColor: '#f8fafc',
+  boxSizing: 'border-box' as const,
+}
+
+const labelStyle = {
+  fontSize: '12px',
+  color: '#475569',
+  marginBottom: '4px',
+  display: 'block',
+  fontWeight: 'bold',
+}
+
 function normalizeVideoUrl(url: string) {
   if (!url) return ''
 
@@ -313,16 +332,16 @@ export default function EpisodesPage() {
       return (
         <div
           style={{
-            marginTop: '12px',
-            padding: '12px 14px',
-            borderRadius: '10px',
+            marginTop: '8px',
+            padding: '8px 10px',
+            borderRadius: '8px',
             backgroundColor: '#fff7ed',
             border: '1px solid #fdba74',
             color: '#9a3412',
-            fontSize: '13px',
+            fontSize: '12px',
           }}
         >
-          まだ対象が選ばれていません。まず会社を選び、そのあと所属を選んでください。
+          まだ対象が選ばれていません。
         </div>
       )
     }
@@ -330,25 +349,25 @@ export default function EpisodesPage() {
     return (
       <div
         style={{
-          marginTop: '12px',
-          padding: '12px 14px',
-          borderRadius: '10px',
+          marginTop: '8px',
+          padding: '8px 10px',
+          borderRadius: '8px',
           backgroundColor: '#eff6ff',
           border: '1px solid #bfdbfe',
         }}
       >
-        <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1d4ed8', marginBottom: '8px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#1d4ed8', marginBottom: '6px' }}>
           現在の対象
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
           {companies.map((company) => (
             <span
               key={`summary-company-${company}`}
               style={{
                 display: 'inline-block',
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 'bold',
-                padding: '5px 10px',
+                padding: '4px 8px',
                 borderRadius: '999px',
                 backgroundColor: '#dbeafe',
                 color: '#1d4ed8',
@@ -362,9 +381,9 @@ export default function EpisodesPage() {
               key={`summary-affiliation-${affiliation}`}
               style={{
                 display: 'inline-block',
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 'bold',
-                padding: '5px 10px',
+                padding: '4px 8px',
                 borderRadius: '999px',
                 backgroundColor: '#fef3c7',
                 color: '#b45309',
@@ -383,108 +402,94 @@ export default function EpisodesPage() {
       <header
         style={{
           backgroundColor: '#1e3a5f',
-          padding: '0 40px',
-          height: '64px',
+          padding: '0 28px',
+          height: '54px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
-              width: '36px',
-              height: '36px',
+              width: '30px',
+              height: '30px',
               backgroundColor: '#2563eb',
-              borderRadius: '8px',
+              borderRadius: '7px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '18px',
+              fontSize: '15px',
             }}
           >
             📺
           </div>
           <div>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff' }}>ViewConfirm</div>
-            <div style={{ fontSize: '10px', color: '#93c5fd', letterSpacing: '0.1em' }}>
+            <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>ViewConfirm</div>
+            <div style={{ fontSize: '9px', color: '#93c5fd', letterSpacing: '0.1em' }}>
               MIRAI GROUP
             </div>
           </div>
         </div>
       </header>
 
-      <main style={{ padding: '40px', maxWidth: '900px', margin: '0 auto' }}>
-        <a
-          href="/"
-          style={{
-            display: 'inline-block',
-            marginBottom: '18px',
-            padding: '10px 18px',
-            backgroundColor: '#dc2626',
-            color: '#fff',
-            border: '1px solid #b91c1c',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            textDecoration: 'none',
-            boxShadow: '0 2px 6px rgba(220,38,38,0.25)',
-          }}
-        >
-          ← トップに戻る
-        </a>
+      <main style={{ padding: '22px 28px 36px', maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          <div>
+            <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e3a5f', margin: 0 }}>
+              🎬 動画管理
+            </h1>
+            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+              動画・資料の追加、対象設定、表示順を管理します。
+            </div>
+          </div>
 
-        <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '32px' }}>
-          🎬 動画管理
-        </h1>
+          <a
+            href="/"
+            style={{
+              display: 'inline-block',
+              padding: '8px 14px',
+              backgroundColor: '#dc2626',
+              color: '#fff',
+              border: '1px solid #b91c1c',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              textDecoration: 'none',
+              boxShadow: '0 2px 6px rgba(220,38,38,0.18)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ← トップに戻る
+          </a>
+        </div>
 
         <div
           style={{
             backgroundColor: '#fff',
             border: '1px solid #e2e8f0',
             borderRadius: '12px',
-            padding: '32px',
-            marginBottom: '32px',
+            padding: '18px',
+            marginBottom: '22px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
-          <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f', margin: '0 0 14px' }}>
             {editingId ? '動画・資料を編集' : '新しい動画を追加'}
           </h2>
 
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-              marginBottom: '16px',
+              gridTemplateColumns: '1.4fr 0.5fr 0.7fr 0.9fr',
+              gap: '12px',
+              marginBottom: '12px',
             }}
           >
             <div>
-              <label
-                style={{
-                  fontSize: '13px',
-                  color: '#475569',
-                  marginBottom: '6px',
-                  display: 'block',
-                }}
-              >
-                チャンネル
-              </label>
-              <select
-                value={channelId}
-                onChange={(e) => setChannelId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '15px',
-                  color: '#0f172a',
-                  backgroundColor: '#f8fafc',
-                }}
-              >
+              <label style={labelStyle}>チャンネル</label>
+              <select value={channelId} onChange={(e) => setChannelId(e.target.value)} style={inputStyle}>
                 <option value="">選択してください</option>
                 {channels.map((ch) => (
                   <option key={ch.id} value={ch.id}>
@@ -495,212 +500,99 @@ export default function EpisodesPage() {
             </div>
 
             <div>
-              <label
-                style={{
-                  fontSize: '13px',
-                  color: '#475569',
-                  marginBottom: '6px',
-                  display: 'block',
-                }}
-              >
-                順番
-              </label>
+              <label style={labelStyle}>順番</label>
+              <input placeholder="例: 1" value={orderNo} onChange={(e) => setOrderNo(e.target.value)} style={inputStyle} />
+            </div>
+
+            <div>
+              <label style={labelStyle}>種別</label>
+              <select value={contentType} onChange={(e) => setContentType(e.target.value)} style={inputStyle}>
+                <option value="video">動画</option>
+                <option value="document">資料</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={labelStyle}>対象設定</label>
+              <select value={targetScope} onChange={(e) => setTargetScope(e.target.value)} style={inputStyle}>
+                <option value="channel">チャンネル設定を使う</option>
+                <option value="custom">この動画で個別設定する</option>
+              </select>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '12px',
+              marginBottom: '12px',
+            }}
+          >
+            <div>
+              <label style={labelStyle}>タイトル</label>
               <input
-                placeholder="例: 1"
-                value={orderNo}
-                onChange={(e) => setOrderNo(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '15px',
-                  color: '#0f172a',
-                  backgroundColor: '#f8fafc',
-                  boxSizing: 'border-box',
-                }}
+                placeholder="タイトルを入力"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>URL</label>
+              <input
+                placeholder="YouTube / PDF / Word / Excel / Googleドライブ などのURL"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                style={inputStyle}
               />
             </div>
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
-            <label
-              style={{
-                fontSize: '13px',
-                color: '#475569',
-                marginBottom: '6px',
-                display: 'block',
-              }}
-            >
-              タイトル
-            </label>
-            <input
-              placeholder="タイトルを入力"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '15px',
-                color: '#0f172a',
-                backgroundColor: '#f8fafc',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label
-              style={{
-                fontSize: '13px',
-                color: '#475569',
-                marginBottom: '6px',
-                display: 'block',
-              }}
-            >
-              内容
-            </label>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={labelStyle}>内容</label>
             <textarea
               placeholder="この動画・資料の内容を入力"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={4}
+              rows={2}
               style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '15px',
-                color: '#0f172a',
-                backgroundColor: '#f8fafc',
-                boxSizing: 'border-box',
+                ...inputStyle,
                 resize: 'vertical',
-                lineHeight: 1.6,
+                lineHeight: 1.5,
               }}
             />
-            <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b', lineHeight: 1.6 }}>
+            <div style={{ marginTop: '5px', fontSize: '11px', color: '#64748b', lineHeight: 1.5 }}>
               入力した内容は、社員が動画を見る画面でタイトルの下に表示されます。
             </div>
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
-            <label
-              style={{
-                fontSize: '13px',
-                color: '#475569',
-                marginBottom: '6px',
-                display: 'block',
-              }}
-            >
-              種別
-            </label>
-            <select
-              value={contentType}
-              onChange={(e) => setContentType(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '15px',
-                color: '#0f172a',
-                backgroundColor: '#f8fafc',
-                boxSizing: 'border-box',
-              }}
-            >
-              <option value="video">動画</option>
-              <option value="document">資料</option>
-            </select>
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label
-              style={{
-                fontSize: '13px',
-                color: '#475569',
-                marginBottom: '6px',
-                display: 'block',
-              }}
-            >
-              URL
-            </label>
-            <input
-              placeholder="YouTube / PDF / Word / Excel / Googleドライブ などのURL"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '15px',
-                color: '#0f172a',
-                backgroundColor: '#f8fafc',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-
           {contentType === 'video' ? (
-            <div style={{ marginBottom: '16px' }}>
-              <label
-                style={{
-                  fontSize: '13px',
-                  color: '#475569',
-                  marginBottom: '6px',
-                  display: 'block',
-                }}
-              >
-                視聴完了までの時間
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <input
-                    placeholder="分"
-                    value={completionMinutes}
-                    onChange={(e) => setCompletionMinutes(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '15px',
-                      color: '#0f172a',
-                      backgroundColor: '#f8fafc',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-                <div>
-                  <input
-                    placeholder="秒"
-                    value={completionSeconds}
-                    onChange={(e) => setCompletionSeconds(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '15px',
-                      color: '#0f172a',
-                      backgroundColor: '#f8fafc',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-              </div>
-              <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b' }}>
-                例：0分30秒、2分00秒、12分15秒
+            <div style={{ marginBottom: '12px' }}>
+              <label style={labelStyle}>視聴完了までの時間</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 120px 1fr', gap: '10px', alignItems: 'center' }}>
+                <input
+                  placeholder="分"
+                  value={completionMinutes}
+                  onChange={(e) => setCompletionMinutes(e.target.value)}
+                  style={inputStyle}
+                />
+                <input
+                  placeholder="秒"
+                  value={completionSeconds}
+                  onChange={(e) => setCompletionSeconds(e.target.value)}
+                  style={inputStyle}
+                />
+                <div style={{ fontSize: '11px', color: '#64748b' }}>例：0分30秒、2分00秒、12分15秒</div>
               </div>
             </div>
           ) : (
             <div
               style={{
-                marginBottom: '16px',
-                padding: '14px 16px',
-                borderRadius: '10px',
+                marginBottom: '12px',
+                padding: '10px 12px',
+                borderRadius: '9px',
                 backgroundColor: '#f8fafc',
                 border: '1px solid #e2e8f0',
               }}
@@ -709,8 +601,8 @@ export default function EpisodesPage() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
-                  fontSize: '14px',
+                  gap: '8px',
+                  fontSize: '13px',
                   color: '#334155',
                 }}
               >
@@ -721,126 +613,86 @@ export default function EpisodesPage() {
                 />
                 閲覧チェックで完了にする
               </label>
-              <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b', lineHeight: 1.7 }}>
-                PDF、Word、Excelなどの資料は、時間ではなく閲覧チェックで完了にできます。
-              </div>
             </div>
           )}
-
-          <div style={{ marginBottom: '16px' }}>
-            <label
-              style={{
-                fontSize: '13px',
-                color: '#475569',
-                marginBottom: '6px',
-                display: 'block',
-              }}
-            >
-              対象設定
-            </label>
-            <select
-              value={targetScope}
-              onChange={(e) => setTargetScope(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '15px',
-                color: '#0f172a',
-                backgroundColor: '#f8fafc',
-                boxSizing: 'border-box',
-              }}
-            >
-              <option value="channel">チャンネル設定を使う</option>
-              <option value="custom">この動画で個別設定する</option>
-            </select>
-            <div style={{ marginTop: '8px', fontSize: '12px', color: '#64748b', lineHeight: 1.6 }}>
-              「この動画で個別設定する」を選んだ場合は、下で対象を選んでください。
-            </div>
-          </div>
 
           {targetScope === 'custom' && (
             <div
               style={{
-                marginBottom: '20px',
-                padding: '16px',
-                borderRadius: '12px',
+                marginBottom: '14px',
+                padding: '12px',
+                borderRadius: '10px',
                 backgroundColor: '#f8fafc',
                 border: '1px solid #e2e8f0',
               }}
             >
-              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '6px' }}>
-                対象の選び方
-              </div>
-              <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.7 }}>
-                1. 先に会社を選びます。<br />
-                2. 選んだ会社で使う所属だけが、所属欄に出ます。<br />
-                3. 会社と所属の両方を選ぶと、この動画だけ個別に設定できます。
+              <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '8px' }}>
+                個別対象設定
               </div>
 
-              <div style={{ marginTop: '16px', marginBottom: '16px' }}>
-                <label style={{ fontSize: '13px', color: '#475569', marginBottom: '10px', display: 'block' }}>
-                  対象会社
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
-                  {ALL_COMPANIES.map((company) => (
-                    <label
-                      key={company}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '14px',
-                        color: '#334155',
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '8px',
-                        padding: '10px 12px',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={targetCompanies.includes(company)}
-                        onChange={() => toggleCompany(company)}
-                      />
-                      {company}
-                    </label>
-                  ))}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '14px',
+                }}
+              >
+                <div>
+                  <label style={labelStyle}>対象会社</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '7px' }}>
+                    {ALL_COMPANIES.map((company) => (
+                      <label
+                        key={company}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '12px',
+                          color: '#334155',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '7px',
+                          padding: '7px 8px',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={targetCompanies.includes(company)}
+                          onChange={() => toggleCompany(company)}
+                        />
+                        {company}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div style={{ marginBottom: '8px' }}>
-                <label style={{ fontSize: '13px', color: '#475569', marginBottom: '10px', display: 'block' }}>
-                  対象所属
-                </label>
-                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px' }}>
-                  選んだ会社で使える所属だけを表示しています。
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
-                  {availableAffiliations.map((affiliation) => (
-                    <label
-                      key={affiliation}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '14px',
-                        color: '#334155',
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '8px',
-                        padding: '10px 12px',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={targetAffiliations.includes(affiliation)}
-                        onChange={() => toggleAffiliation(affiliation)}
-                      />
-                      {affiliation}
-                    </label>
-                  ))}
+                <div>
+                  <label style={labelStyle}>対象所属</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '7px' }}>
+                    {availableAffiliations.map((affiliation) => (
+                      <label
+                        key={affiliation}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '12px',
+                          color: '#334155',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '7px',
+                          padding: '7px 8px',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={targetAffiliations.includes(affiliation)}
+                          onChange={() => toggleAffiliation(affiliation)}
+                        />
+                        {affiliation}
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -848,18 +700,18 @@ export default function EpisodesPage() {
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
               onClick={handleCreateOrUpdate}
               disabled={loading}
               style={{
-                padding: '10px 28px',
+                padding: '8px 22px',
                 backgroundColor: '#1e3a5f',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
-                fontSize: '15px',
+                fontSize: '14px',
                 fontWeight: 'bold',
               }}
             >
@@ -871,13 +723,13 @@ export default function EpisodesPage() {
                 onClick={resetForm}
                 type="button"
                 style={{
-                  padding: '10px 28px',
+                  padding: '8px 22px',
                   backgroundColor: '#e2e8f0',
                   color: '#334155',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontSize: '15px',
+                  fontSize: '14px',
                   fontWeight: 'bold',
                 }}
               >
@@ -887,9 +739,12 @@ export default function EpisodesPage() {
           </div>
         </div>
 
-        <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '16px' }}>
-          動画一覧
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', margin: 0 }}>
+            動画一覧
+          </h2>
+          <div style={{ fontSize: '12px', color: '#64748b' }}>チャンネルごとに表示</div>
+        </div>
 
         {channels.map((ch) => {
           const channelEpisodes = episodes
@@ -897,14 +752,17 @@ export default function EpisodesPage() {
             .sort((a, b) => a.order_no - b.order_no)
 
           return (
-            <div key={ch.id} style={{ marginBottom: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                <div style={{ width: '4px', height: '20px', backgroundColor: '#2563eb', borderRadius: '2px' }} />
-                <h3 style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{ch.title}</h3>
+            <div key={ch.id} style={{ marginBottom: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
+                <div style={{ width: '4px', height: '18px', backgroundColor: '#2563eb', borderRadius: '2px' }} />
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f', margin: 0 }}>{ch.title}</h3>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>({channelEpisodes.length}件)</span>
               </div>
 
               {channelEpisodes.length === 0 && (
-                <p style={{ color: '#94a3b8', fontSize: '14px', paddingLeft: '12px' }}>動画がありません</p>
+                <p style={{ color: '#94a3b8', fontSize: '13px', paddingLeft: '12px', margin: '6px 0' }}>
+                  動画がありません
+                </p>
               )}
 
               {channelEpisodes.map((ep, index) => (
@@ -914,184 +772,173 @@ export default function EpisodesPage() {
                     backgroundColor: '#fff',
                     border: '1px solid #e2e8f0',
                     borderRadius: '10px',
-                    padding: '16px 20px',
-                    marginBottom: '10px',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                    padding: '12px 14px',
+                    marginBottom: '8px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.035)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                     <span
                       style={{
-                        fontSize: '12px',
+                        fontSize: '11px',
                         color: '#fff',
                         backgroundColor: '#2563eb',
-                        padding: '2px 8px',
+                        padding: '3px 7px',
                         borderRadius: '4px',
                         fontWeight: 'bold',
+                        flexShrink: 0,
                       }}
                     >
                       #{ep.order_no}
                     </span>
 
-                    <span style={{ fontSize: '15px', color: '#1e3a5f', fontWeight: '500' }}>{ep.title}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '14px', color: '#1e3a5f', fontWeight: 'bold' }}>{ep.title}</span>
 
-                    <span
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        padding: '4px 10px',
-                        borderRadius: '999px',
-                        backgroundColor: ep.content_type === 'document' ? '#fef3c7' : '#dcfce7',
-                        color: ep.content_type === 'document' ? '#b45309' : '#166534',
-                      }}
-                    >
-                      {ep.content_type === 'document' ? '資料' : '動画'}
-                    </span>
-
-                    {ep.video_url && (
-                      <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: 'auto' }}>登録済み</span>
-                    )}
-                  </div>
-
-                  {ep.description && (
-                    <div
-                      style={{
-                        paddingLeft: '44px',
-                        marginBottom: '10px',
-                        color: '#475569',
-                        fontSize: '13px',
-                        lineHeight: 1.7,
-                        whiteSpace: 'pre-wrap',
-                      }}
-                    >
-                      {ep.description}
-                    </div>
-                  )}
-
-                  <div style={{ paddingLeft: '44px', marginBottom: '10px' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {ep.content_type === 'document' ? (
                         <span
                           style={{
-                            display: 'inline-block',
-                            fontSize: '12px',
+                            fontSize: '11px',
                             fontWeight: 'bold',
-                            padding: '5px 10px',
+                            padding: '3px 8px',
                             borderRadius: '999px',
-                            backgroundColor: ep.require_manual_check ? '#dbeafe' : '#e2e8f0',
-                            color: ep.require_manual_check ? '#1d4ed8' : '#475569',
+                            backgroundColor: ep.content_type === 'document' ? '#fef3c7' : '#dcfce7',
+                            color: ep.content_type === 'document' ? '#b45309' : '#166534',
                           }}
                         >
-                          {ep.require_manual_check ? '閲覧チェックで完了' : '資料'}
+                          {ep.content_type === 'document' ? '資料' : '動画'}
                         </span>
-                      ) : (
-                        <span
+
+                        {ep.content_type === 'document' ? (
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              padding: '3px 8px',
+                              borderRadius: '999px',
+                              backgroundColor: ep.require_manual_check ? '#dbeafe' : '#e2e8f0',
+                              color: ep.require_manual_check ? '#1d4ed8' : '#475569',
+                            }}
+                          >
+                            {ep.require_manual_check ? '閲覧チェックで完了' : '資料'}
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              padding: '3px 8px',
+                              borderRadius: '999px',
+                              backgroundColor: '#ede9fe',
+                              color: '#6d28d9',
+                            }}
+                          >
+                            視聴完了: {formatSeconds(ep.completion_seconds || 0)}
+                          </span>
+                        )}
+                      </div>
+
+                      {ep.description && (
+                        <div
                           style={{
-                            display: 'inline-block',
+                            marginTop: '6px',
+                            color: '#475569',
                             fontSize: '12px',
-                            fontWeight: 'bold',
-                            padding: '5px 10px',
-                            borderRadius: '999px',
-                            backgroundColor: '#ede9fe',
-                            color: '#6d28d9',
+                            lineHeight: 1.5,
+                            whiteSpace: 'pre-wrap',
                           }}
                         >
-                          視聴完了: {formatSeconds(ep.completion_seconds || 0)}
-                        </span>
+                          {ep.description}
+                        </div>
                       )}
+
+                      <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                        {getTargetBadges(ep).map((badge, badgeIndex) => (
+                          <span
+                            key={`${ep.id}-${badge.label}-${badgeIndex}`}
+                            style={{
+                              display: 'inline-block',
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              padding: '4px 8px',
+                              borderRadius: '999px',
+                              backgroundColor: badge.bg,
+                              color: badge.color,
+                            }}
+                          >
+                            {badge.label}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div style={{ paddingLeft: '44px', marginBottom: '12px' }}>
-                    <div style={{ color: '#475569', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
-                      誰向けか
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '260px' }}>
+                      <button
+                        onClick={() => handleEdit(ep)}
+                        style={{
+                          padding: '7px 10px',
+                          backgroundColor: '#1d4ed8',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '7px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        編集
+                      </button>
+
+                      <button
+                        onClick={() => handleDelete(ep)}
+                        style={{
+                          padding: '7px 10px',
+                          backgroundColor: '#dc2626',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '7px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        削除
+                      </button>
+
+                      <button
+                        onClick={() => handleMove(ep, 'up')}
+                        disabled={index === 0}
+                        style={{
+                          padding: '7px 10px',
+                          backgroundColor: index === 0 ? '#cbd5e1' : '#0f766e',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '7px',
+                          cursor: index === 0 ? 'not-allowed' : 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        ↑
+                      </button>
+
+                      <button
+                        onClick={() => handleMove(ep, 'down')}
+                        disabled={index === channelEpisodes.length - 1}
+                        style={{
+                          padding: '7px 10px',
+                          backgroundColor: index === channelEpisodes.length - 1 ? '#cbd5e1' : '#0f766e',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '7px',
+                          cursor: index === channelEpisodes.length - 1 ? 'not-allowed' : 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        ↓
+                      </button>
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {getTargetBadges(ep).map((badge, badgeIndex) => (
-                        <span
-                          key={`${ep.id}-${badge.label}-${badgeIndex}`}
-                          style={{
-                            display: 'inline-block',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            padding: '5px 10px',
-                            borderRadius: '999px',
-                            backgroundColor: badge.bg,
-                            color: badge.color,
-                          }}
-                        >
-                          {badge.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div style={{ paddingLeft: '44px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <button
-                      onClick={() => handleEdit(ep)}
-                      style={{
-                        padding: '8px 14px',
-                        backgroundColor: '#1d4ed8',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      編集
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(ep)}
-                      style={{
-                        padding: '8px 14px',
-                        backgroundColor: '#dc2626',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      削除
-                    </button>
-
-                    <button
-                      onClick={() => handleMove(ep, 'up')}
-                      disabled={index === 0}
-                      style={{
-                        padding: '8px 14px',
-                        backgroundColor: index === 0 ? '#cbd5e1' : '#0f766e',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: index === 0 ? 'not-allowed' : 'pointer',
-                        fontSize: '13px',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      ↑ 上へ
-                    </button>
-
-                    <button
-                      onClick={() => handleMove(ep, 'down')}
-                      disabled={index === channelEpisodes.length - 1}
-                      style={{
-                        padding: '8px 14px',
-                        backgroundColor: index === channelEpisodes.length - 1 ? '#cbd5e1' : '#0f766e',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: index === channelEpisodes.length - 1 ? 'not-allowed' : 'pointer',
-                        fontSize: '13px',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      ↓ 下へ
-                    </button>
                   </div>
                 </div>
               ))}
