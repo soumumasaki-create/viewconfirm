@@ -36,6 +36,8 @@ type YouTubePlayer = {
   destroy: () => void
   getCurrentTime: () => number
   seekTo: (seconds: number, allowSeekAhead?: boolean) => void
+  unloadModule?: (moduleName: string) => void
+  setOption?: (moduleName: string, option: string, value: unknown) => void
 }
 
 type Channel = {
@@ -257,6 +259,28 @@ export default function WatchPage() {
     return 'guest'
   }
 
+  const hideYouTubeCaptions = (target?: YouTubePlayer | null) => {
+    if (!target) return
+
+    try {
+      target.unloadModule?.('captions')
+    } catch {
+      // 何もしない
+    }
+
+    try {
+      target.unloadModule?.('cc')
+    } catch {
+      // 何もしない
+    }
+
+    try {
+      target.setOption?.('captions', 'track', {})
+    } catch {
+      // 何もしない
+    }
+  }
+
   const loadSavedRemainingSeconds = (episodeId: number, defaultSeconds: number) => {
     if (typeof window === 'undefined') return defaultSeconds
 
@@ -370,6 +394,7 @@ export default function WatchPage() {
     if (!playerRef.current) return
 
     try {
+      hideYouTubeCaptions(playerRef.current)
       playerRef.current.playVideo()
     } catch {
       // 何もしない
@@ -634,9 +659,21 @@ export default function WatchPage() {
         disablekb: 1,
         controls: 0,
         fs: 0,
+        cc_load_policy: 0,
+        iv_load_policy: 3,
       },
       events: {
         onReady: (event) => {
+          hideYouTubeCaptions(event.target)
+
+          setTimeout(() => {
+            hideYouTubeCaptions(event.target)
+          }, 500)
+
+          setTimeout(() => {
+            hideYouTubeCaptions(event.target)
+          }, 1500)
+
           if (savedPosition > 0) {
             event.target.seekTo(savedPosition, true)
           }
@@ -645,7 +682,10 @@ export default function WatchPage() {
           const playerState = window.YT?.PlayerState
           if (!playerState || !selectedEpisode) return
 
+          hideYouTubeCaptions(event.target)
+
           if (event.data === playerState.PLAYING && pageActiveRef.current) {
+            hideYouTubeCaptions(event.target)
             setIsYouTubePlaying(true)
           } else {
             setIsYouTubePlaying(false)
@@ -697,6 +737,8 @@ export default function WatchPage() {
         if (!pageActiveRef.current) return
         if (!isYouTubePlaying) return
 
+        hideYouTubeCaptions(playerRef.current)
+
         remainingRef.current -= 1
         const nextValue = Math.max(0, remainingRef.current)
 
@@ -715,6 +757,7 @@ export default function WatchPage() {
         if (!selectedEpisode || !playerRef.current) return
 
         try {
+          hideYouTubeCaptions(playerRef.current)
           const currentTime = playerRef.current.getCurrentTime()
           saveVideoPosition(selectedEpisode.id, currentTime)
         } catch {
@@ -728,6 +771,8 @@ export default function WatchPage() {
         if (!isYouTubePlaying) return
 
         try {
+          hideYouTubeCaptions(playerRef.current)
+
           const currentTime = playerRef.current.getCurrentTime()
           const lastSafeTime = lastSafeVideoPositionRef.current
 
@@ -889,18 +934,22 @@ export default function WatchPage() {
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
+                hideYouTubeCaptions(playerRef.current)
               }}
               onDoubleClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
+                hideYouTubeCaptions(playerRef.current)
               }}
               onTouchStart={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
+                hideYouTubeCaptions(playerRef.current)
               }}
               onTouchEnd={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
+                hideYouTubeCaptions(playerRef.current)
               }}
               style={{
                 position: 'absolute',
