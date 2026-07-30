@@ -211,6 +211,7 @@ export default function WatchPage() {
   const [companyId, setCompanyId] = useState('')
   const [companies, setCompanies] = useState<Company[]>([])
   const [watched, setWatched] = useState(false)
+  const [alreadyWatched, setAlreadyWatched] = useState(false)
   const [loading, setLoading] = useState(false)
   const [watchLogs, setWatchLogs] = useState<WatchLog[]>([])
   const [isEmployee, setIsEmployee] = useState(false)
@@ -261,38 +262,25 @@ export default function WatchPage() {
 
   const hideYouTubeCaptions = (target?: YouTubePlayer | null) => {
     if (!target) return
-
     try {
       target.unloadModule?.('captions')
-    } catch {
-      // 何もしない
-    }
-
+    } catch {}
     try {
       target.unloadModule?.('cc')
-    } catch {
-      // 何もしない
-    }
-
+    } catch {}
     try {
       target.setOption?.('captions', 'track', {})
-    } catch {
-      // 何もしない
-    }
+    } catch {}
   }
 
   const loadSavedRemainingSeconds = (episodeId: number, defaultSeconds: number) => {
     if (typeof window === 'undefined') return defaultSeconds
-
     try {
       const storageKey = getWatchProgressStorageKey(episodeId, getProgressUserKey())
       const savedValue = window.sessionStorage.getItem(storageKey)
-
       if (!savedValue) return defaultSeconds
-
       const parsed = Number(savedValue)
       if (!Number.isFinite(parsed)) return defaultSeconds
-
       return Math.max(0, Math.min(defaultSeconds, parsed))
     } catch {
       return defaultSeconds
@@ -301,38 +289,28 @@ export default function WatchPage() {
 
   const saveRemainingSeconds = (episodeId: number, seconds: number) => {
     if (typeof window === 'undefined') return
-
     try {
       const storageKey = getWatchProgressStorageKey(episodeId, getProgressUserKey())
       window.sessionStorage.setItem(storageKey, String(Math.max(0, seconds)))
-    } catch {
-      // 何もしない
-    }
+    } catch {}
   }
 
   const clearSavedRemainingSeconds = (episodeId: number) => {
     if (typeof window === 'undefined') return
-
     try {
       const storageKey = getWatchProgressStorageKey(episodeId, getProgressUserKey())
       window.sessionStorage.removeItem(storageKey)
-    } catch {
-      // 何もしない
-    }
+    } catch {}
   }
 
   const loadSavedVideoPosition = (episodeId: number) => {
     if (typeof window === 'undefined') return 0
-
     try {
       const storageKey = getVideoPositionStorageKey(episodeId, getProgressUserKey())
       const savedValue = window.sessionStorage.getItem(storageKey)
-
       if (!savedValue) return 0
-
       const parsed = Number(savedValue)
       if (!Number.isFinite(parsed)) return 0
-
       return Math.max(0, parsed)
     } catch {
       return 0
@@ -341,24 +319,18 @@ export default function WatchPage() {
 
   const saveVideoPosition = (episodeId: number, seconds: number) => {
     if (typeof window === 'undefined') return
-
     try {
       const storageKey = getVideoPositionStorageKey(episodeId, getProgressUserKey())
       window.sessionStorage.setItem(storageKey, String(Math.max(0, Math.floor(seconds))))
-    } catch {
-      // 何もしない
-    }
+    } catch {}
   }
 
   const clearSavedVideoPosition = (episodeId: number) => {
     if (typeof window === 'undefined') return
-
     try {
       const storageKey = getVideoPositionStorageKey(episodeId, getProgressUserKey())
       window.sessionStorage.removeItem(storageKey)
-    } catch {
-      // 何もしない
-    }
+    } catch {}
   }
 
   const stopAllTimers = () => {
@@ -383,6 +355,7 @@ export default function WatchPage() {
     setIsYouTubePlaying(false)
     setCanComplete(false)
     setWatched(false)
+    setAlreadyWatched(false)
     setSeekWarningMessage('')
     remainingRef.current = 0
     currentEpisodeIdRef.current = null
@@ -392,23 +365,17 @@ export default function WatchPage() {
 
   const playYouTubeVideo = () => {
     if (!playerRef.current) return
-
     try {
       hideYouTubeCaptions(playerRef.current)
       playerRef.current.playVideo()
-    } catch {
-      // 何もしない
-    }
+    } catch {}
   }
 
   const pauseYouTubeVideo = () => {
     if (!playerRef.current) return
-
     try {
       playerRef.current.pauseVideo()
-    } catch {
-      // 何もしない
-    }
+    } catch {}
   }
 
   useEffect(() => {
@@ -515,15 +482,12 @@ export default function WatchPage() {
             const currentTime = playerRef.current.getCurrentTime()
             saveVideoPosition(currentEpisodeIdRef.current, currentTime)
             playerRef.current.pauseVideo()
-          } catch {
-            // 何もしない
-          }
+          } catch {}
         }
       }
     }
 
     handleVisibilityChange()
-
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
@@ -539,15 +503,10 @@ export default function WatchPage() {
 
     const stopKeyEvent = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase()
-
-      if (
-        e.ctrlKey &&
-        (key === 'c' || key === 'x' || key === 's' || key === 'u' || key === 'p')
-      ) {
+      if (e.ctrlKey && (key === 'c' || key === 'x' || key === 's' || key === 'u' || key === 'p')) {
         e.preventDefault()
         e.stopPropagation()
       }
-
       if (key === 'f12') {
         e.preventDefault()
         e.stopPropagation()
@@ -579,7 +538,7 @@ export default function WatchPage() {
   }
 
   useEffect(() => {
-    if (!selectedEpisode || canComplete) return
+    if (!selectedEpisode || canComplete || alreadyWatched) return
     if (selectedEpisode.content_type === 'document') return
     if (isEpisodeWatched(selectedEpisode.id)) return
 
@@ -631,13 +590,14 @@ export default function WatchPage() {
     isEmployee,
     isYouTubePlaying,
     selectedMedia,
+    alreadyWatched,
   ])
 
   useEffect(() => {
     if (!selectedEpisode || selectedMedia?.type !== 'youtube' || !youtubeApiReady) return
 
     const videoId = selectedMedia.videoId
-    const savedPosition = loadSavedVideoPosition(selectedEpisode.id)
+    const savedPosition = alreadyWatched ? 0 : loadSavedVideoPosition(selectedEpisode.id)
 
     if (playerRef.current) {
       playerRef.current.destroy()
@@ -691,20 +651,16 @@ export default function WatchPage() {
             setIsYouTubePlaying(false)
           }
 
-          if (event.data === playerState.PAUSED || event.data === playerState.BUFFERING) {
+          if (!alreadyWatched && (event.data === playerState.PAUSED || event.data === playerState.BUFFERING)) {
             try {
               saveVideoPosition(selectedEpisode.id, event.target.getCurrentTime())
-            } catch {
-              // 何もしない
-            }
+            } catch {}
           }
 
-          if (event.data === playerState.ENDED) {
+          if (!alreadyWatched && event.data === playerState.ENDED) {
             try {
               saveVideoPosition(selectedEpisode.id, event.target.getCurrentTime())
-            } catch {
-              // 何もしない
-            }
+            } catch {}
           }
         },
       },
@@ -714,20 +670,18 @@ export default function WatchPage() {
       setIsYouTubePlaying(false)
       if (playerRef.current) {
         try {
-          if (selectedEpisode) {
+          if (selectedEpisode && !alreadyWatched) {
             saveVideoPosition(selectedEpisode.id, playerRef.current.getCurrentTime())
           }
           playerRef.current.destroy()
-        } catch {
-          // 何もしない
-        }
+        } catch {}
         playerRef.current = null
       }
     }
-  }, [selectedEpisode, selectedMedia, youtubeApiReady])
+  }, [selectedEpisode, selectedMedia, youtubeApiReady, alreadyWatched])
 
   useEffect(() => {
-    if (!selectedEpisode || selectedEpisode.content_type === 'document') return
+    if (!selectedEpisode || selectedEpisode.content_type === 'document' || alreadyWatched) return
     if (isEpisodeWatched(selectedEpisode.id)) return
 
     stopAllTimers()
@@ -760,9 +714,7 @@ export default function WatchPage() {
           hideYouTubeCaptions(playerRef.current)
           const currentTime = playerRef.current.getCurrentTime()
           saveVideoPosition(selectedEpisode.id, currentTime)
-        } catch {
-          // 何もしない
-        }
+        } catch {}
       }, 1000)
 
       seekCheckTimerRef.current = setInterval(() => {
@@ -793,9 +745,7 @@ export default function WatchPage() {
           if (currentTime >= lastSafeTime) {
             lastSafeVideoPositionRef.current = currentTime
           }
-        } catch {
-          // 何もしない
-        }
+        } catch {}
       }, 1200)
 
       return
@@ -817,7 +767,7 @@ export default function WatchPage() {
         clearSavedRemainingSeconds(selectedEpisode.id)
       }
     }, 1000)
-  }, [selectedEpisode, selectedMedia, isYouTubePlaying, watchLogs, loginName, isEmployee])
+  }, [selectedEpisode, selectedMedia, isYouTubePlaying, watchLogs, loginName, isEmployee, alreadyWatched])
 
   const handleSelectEpisode = (ep: Episode) => {
     resetWatchState()
@@ -825,7 +775,8 @@ export default function WatchPage() {
     currentEpisodeIdRef.current = ep.id
 
     if (isEpisodeWatched(ep.id)) {
-      setCanComplete(true)
+      setAlreadyWatched(true)
+      setCanComplete(false)
       clearSavedRemainingSeconds(ep.id)
       clearSavedVideoPosition(ep.id)
       return
@@ -883,6 +834,7 @@ export default function WatchPage() {
     clearSavedRemainingSeconds(selectedEpisode.id)
     clearSavedVideoPosition(selectedEpisode.id)
     setWatched(true)
+    setAlreadyWatched(false)
     setWatchLogs([...watchLogs, ...newLogs])
     setLoading(false)
   }
@@ -900,6 +852,68 @@ export default function WatchPage() {
 
   const channelEpisodes = selectedChannel ? episodes.filter((ep) => ep.channel_id === selectedChannel.id) : []
   const selectedChannelIsFree = (selectedChannel?.play_order_rule || 'sequential') === 'free'
+
+  const renderQuickCompleteButton = () => {
+    if (watched || alreadyWatched || !canComplete || !selectedEpisode) return null
+
+    return (
+      <div
+        style={{
+          backgroundColor: '#f0fdf4',
+          border: '1px solid #86efac',
+          borderRadius: '12px',
+          padding: '16px',
+          marginBottom: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        }}
+      >
+        <div
+          style={{
+            fontSize: '14px',
+            color: '#166534',
+            fontWeight: 'bold',
+            marginBottom: '10px',
+            lineHeight: 1.6,
+          }}
+        >
+          視聴完了できる状態です。1人で見た場合は、ここから完了できます。
+        </div>
+
+        <button
+          onClick={handleComplete}
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '14px',
+            backgroundColor: '#16a34a',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: '17px',
+            fontWeight: 'bold',
+          }}
+        >
+          {loading
+            ? '記録中...'
+            : selectedEpisode.content_type === 'document'
+              ? '閲覧完了'
+              : '視聴完了'}
+        </button>
+
+        <div
+          style={{
+            marginTop: '8px',
+            fontSize: '12px',
+            color: '#64748b',
+            lineHeight: 1.6,
+          }}
+        >
+          複数人で一緒に見た場合は、下の氏名入力欄も使用してください。
+        </div>
+      </div>
+    )
+  }
 
   const renderMedia = () => {
     if (!selectedEpisode?.video_url || !selectedMedia) return null
@@ -1536,17 +1550,21 @@ export default function WatchPage() {
               )}
 
               <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7 }}>
-                {selectedEpisode.content_type === 'document'
-                  ? '資料を確認したあと、下の完了ボタンを押してください。'
-                  : `動画を見終わりましたら、下の「視聴完了」を押してください。完了までの時間は ${formatSeconds(
-                      selectedEpisode.completion_seconds || 180
-                    )} です。`}
+                {alreadyWatched
+                  ? 'この動画はすでに視聴済みです。再確認のため、もう一度見ることはできます。'
+                  : selectedEpisode.content_type === 'document'
+                    ? '資料を確認したあと、完了ボタンを押してください。'
+                    : `動画を見終わりましたら、「視聴完了」を押してください。完了までの時間は ${formatSeconds(
+                        selectedEpisode.completion_seconds || 180
+                      )} です。`}
               </div>
             </div>
 
             {renderMedia()}
 
-            {!watched && canComplete && (
+            {renderQuickCompleteButton()}
+
+            {!watched && !alreadyWatched && canComplete && (
               <div
                 style={{
                   backgroundColor: '#fff',
@@ -1672,7 +1690,7 @@ export default function WatchPage() {
               </div>
             )}
 
-            {!watched && !canComplete && (
+            {!watched && !alreadyWatched && !canComplete && (
               <div
                 style={{
                   backgroundColor: '#fff7ed',
@@ -1684,6 +1702,49 @@ export default function WatchPage() {
                 }}
               >
                 {completionMessage || '視聴中です。完了ボタンはまだ表示されません。'}
+              </div>
+            )}
+
+            {alreadyWatched && (
+              <div
+                style={{
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #86efac',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  textAlign: 'center',
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: '18px',
+                    color: '#16a34a',
+                    fontWeight: 'bold',
+                    marginBottom: '16px',
+                  }}
+                >
+                  この動画はすでに視聴済みです
+                </p>
+
+                <button
+                  onClick={() => {
+                    resetWatchState()
+                    setSelectedEpisode(null)
+                  }}
+                  style={{
+                    padding: '10px 28px',
+                    backgroundColor: '#dc2626',
+                    color: '#fff',
+                    border: '1px solid #b91c1c',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '15px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 2px 6px rgba(220,38,38,0.25)',
+                  }}
+                >
+                  一覧に戻る
+                </button>
               </div>
             )}
 
