@@ -27,7 +27,18 @@ export default function Home() {
     <div style={{ minHeight:'100vh', backgroundColor:'#f8fafc', color:'#0f172a', fontFamily:'sans-serif' }}>
       <header style={{ backgroundColor:'#1e3a5f', borderBottom:'1px solid #1e3a5f', padding:'0 40px', height:'64px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
-          <div style={{ width:'36px', height:'36px', backgroundColor:'#2563eb', borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>📺</div>
+          <div style={{ width:'44px', height:'44px', backgroundColor:'#fff', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', padding:'4px' }}>
+            <img
+              src="/mirai-logo.jpg"
+              alt="MIRAI"
+              style={{
+                width:'100%',
+                height:'100%',
+                objectFit:'contain',
+                display:'block'
+              }}
+            />
+          </div>
           <div>
             <div style={{ fontSize:'16px', fontWeight:'bold', color:'#fff', letterSpacing:'0.05em' }}>ViewConfirm</div>
             <div style={{ fontSize:'10px', color:'#93c5fd', letterSpacing:'0.1em' }}>MIRAI GROUP</div>
@@ -42,7 +53,7 @@ export default function Home() {
 
       <main style={{ padding:'48px 40px', maxWidth:'1000px', margin:'0 auto' }}>
         <div style={{ marginBottom:'40px', paddingBottom:'32px', borderBottom:'1px solid #e2e8f0' }}>
-          <h2 style={{ fontSize:'22px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'6px' }}>人材教育プラットフォーム</h2>
+          <h2 style={{ fontSize:'22px', fontWeight:'bold', color:'#1e3a5f', marginBottom:'6px' }}>MIRAIプラットフォーム</h2>
           <p style={{ color:'#64748b', fontSize:'14px' }}>ようこそ、{email} さん</p>
         </div>
 
