@@ -92,15 +92,59 @@ export default function AdminEmployeesPage() {
     setEditingId(null)
   }
 
+  const normalizeText = (value: string | null | undefined) => {
+    return (value || '').replace(/　/g, ' ').trim().replace(/\s+/g, ' ')
+  }
+
   const availableAffiliations = company ? AFFILIATIONS_BY_COMPANY[company] || [] : []
 
   const makeEmployeeKey = (targetCompany: string, targetLastName: string, targetFirstName: string) => {
-    return `${targetCompany.trim()}::${targetLastName.trim()}::${targetFirstName.trim()}`
+    return `${normalizeText(targetCompany)}::${normalizeText(targetLastName)}::${normalizeText(targetFirstName)}`
+  }
+
+  const makeDuplicateKey = (
+    targetCompany: string,
+    targetAffiliation: string,
+    targetLastName: string,
+    targetFirstName: string
+  ) => {
+    return `${normalizeText(targetCompany)}::${normalizeText(targetAffiliation)}::${normalizeText(
+      targetLastName
+    )}::${normalizeText(targetFirstName)}`
   }
 
   const findExistingEmployee = (targetCompany: string, targetLastName: string, targetFirstName: string) => {
     const key = makeEmployeeKey(targetCompany, targetLastName, targetFirstName)
     return employees.find((emp) => makeEmployeeKey(emp.company || '', emp.last_name || '', emp.first_name || '') === key)
+  }
+
+  const findDuplicateEmployee = (
+    targetCompany: string,
+    targetAffiliation: string,
+    targetLastName: string,
+    targetFirstName: string,
+    ignoreId?: number | null
+  ) => {
+    const key = makeDuplicateKey(targetCompany, targetAffiliation, targetLastName, targetFirstName)
+    return employees.find((emp) => {
+      if (ignoreId && emp.id === ignoreId) return false
+      return makeDuplicateKey(emp.company || '', emp.affiliation || '', emp.last_name || '', emp.first_name || '') === key
+    })
+  }
+
+  const getDuplicateKeysInExistingEmployees = () => {
+    const counts = new Map<string, number>()
+
+    employees.forEach((emp) => {
+      const key = makeDuplicateKey(emp.company || '', emp.affiliation || '', emp.last_name || '', emp.first_name || '')
+      counts.set(key, (counts.get(key) || 0) + 1)
+    })
+
+    return new Set(
+      Array.from(counts.entries())
+        .filter(([, count]) => count > 1)
+        .map(([key]) => key)
+    )
   }
 
   const csvEscape = (value: string | number | boolean | null | undefined) => {
@@ -153,6 +197,13 @@ export default function AdminEmployeesPage() {
   const handleSubmit = async () => {
     if (!lastName || !firstName || !company || !affiliation) {
       setMessage('❌ 姓・名・会社名・所属をすべて入力してください')
+      return
+    }
+
+    const duplicate = findDuplicateEmployee(company, affiliation, lastName, firstName, editingId)
+
+    if (duplicate) {
+      setMessage('❌ 同じ会社・所属・氏名の社員がすでに登録されています')
       return
     }
 
@@ -355,6 +406,7 @@ export default function AdminEmployeesPage() {
 
   const validateImportRows = (rawRows: Record<string, string>[]) => {
     const seenEmployeeKeys = new Set<string>()
+    const seenDuplicateKeys = new Set<string>()
 
     return rawRows.map((rawRow, index) => {
       const rowNumber = index + 2
@@ -366,6 +418,7 @@ export default function AdminEmployeesPage() {
       const errors: string[] = []
       const existingEmployee = findExistingEmployee(rowCompany, rowLastName, rowFirstName)
       const employeeKey = makeEmployeeKey(rowCompany, rowLastName, rowFirstName)
+      const duplicateKey = makeDuplicateKey(rowCompany, rowAffiliation, rowLastName, rowFirstName)
 
       if (!fullName) errors.push('氏名が空欄です')
       if (fullName && !rowFirstName) errors.push('氏名は「姓 名」のように姓と名の間にスペースを入れてください')
@@ -377,6 +430,27 @@ export default function AdminEmployeesPage() {
           errors.push('CSV内で同じ会社・氏名が重複しています')
         }
         seenEmployeeKeys.add(employeeKey)
+      }
+
+      if (rowCompany && rowAffiliation && rowLastName && rowFirstName) {
+        if (seenDuplicateKeys.has(duplicateKey)) {
+          errors.push('CSV内で同じ会社・所属・氏名が重複しています')
+        }
+        seenDuplicateKeys.add(duplicateKey)
+      }
+
+      if (rowCompany && rowAffiliation && rowLastName && rowFirstName) {
+        const duplicateEmployee = findDuplicateEmployee(
+          rowCompany,
+          rowAffiliation,
+          rowLastName,
+          rowFirstName,
+          existingEmployee?.id || null
+        )
+
+        if (duplicateEmployee) {
+          errors.push('既存社員に同じ会社・所属・氏名の登録があります')
+        }
       }
 
       if (rowCompany && !companies.includes(rowCompany)) {
@@ -517,6 +591,58 @@ export default function AdminEmployeesPage() {
   }
 
   const hasImportErrors = importRows.some((row) => row.errors.length > 0)
+  const duplicateKeysInExistingEmployees = getDuplicateKeysInExistingEmployees()
+  const duplicateEmployeeCount = employees.filter((emp) =>
+    duplicateKeysInExistingEmployees.has(makeDuplicateKey(emp.company || '', emp.affiliation || '', emp.last_name || '', emp.first_name || ''))
+  ).length
+
+  const getCompanyOrder = (companyName: string) => {
+    const index = companies.indexOf(companyName)
+    return index === -1 ? 9999 : index
+  }
+
+  const getAffiliationOrder = (companyName: string, affiliationName: string) => {
+    const list = AFFILIATIONS_BY_COMPANY[companyName] || []
+    const index = list.indexOf(affiliationName)
+    return index === -1 ? 9999 : index
+  }
+
+  const sortedEmployees = [...employees].sort((a, b) => {
+    const companyDiff = getCompanyOrder(a.company || '') - getCompanyOrder(b.company || '')
+    if (companyDiff !== 0) return companyDiff
+
+    const affiliationDiff =
+      getAffiliationOrder(a.company || '', a.affiliation || '') - getAffiliationOrder(b.company || '', b.affiliation || '')
+    if (affiliationDiff !== 0) return affiliationDiff
+
+    const lastNameDiff = (a.last_name || '').localeCompare(b.last_name || '', 'ja')
+    if (lastNameDiff !== 0) return lastNameDiff
+
+    return (a.first_name || '').localeCompare(b.first_name || '', 'ja')
+  })
+
+  const groupedEmployees = sortedEmployees.reduce<Record<string, Record<string, Employee[]>>>((groups, emp) => {
+    const companyName = emp.company || '会社未設定'
+    const affiliationName = emp.affiliation || '所属未設定'
+
+    if (!groups[companyName]) {
+      groups[companyName] = {}
+    }
+
+    if (!groups[companyName][affiliationName]) {
+      groups[companyName][affiliationName] = []
+    }
+
+    groups[companyName][affiliationName].push(emp)
+
+    return groups
+  }, {})
+
+  const companyGroupNames = Object.keys(groupedEmployees).sort((a, b) => {
+    const companyDiff = getCompanyOrder(a) - getCompanyOrder(b)
+    if (companyDiff !== 0) return companyDiff
+    return a.localeCompare(b, 'ja')
+  })
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
@@ -573,9 +699,27 @@ export default function AdminEmployeesPage() {
           ← トップに戻る
         </a>
 
-        <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '32px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '24px' }}>
           👥 社員登録管理
         </h1>
+
+        {duplicateEmployeeCount > 0 && (
+          <div
+            style={{
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              color: '#991b1b',
+              fontSize: '14px',
+              lineHeight: 1.7,
+              marginBottom: '20px',
+              fontWeight: 'bold',
+            }}
+          >
+            ⚠ 同じ会社・所属・氏名の社員が {duplicateEmployeeCount} 件あります。赤い「重複」表示の社員を確認してください。
+          </div>
+        )}
 
         <div
           style={{
@@ -594,7 +738,7 @@ export default function AdminEmployeesPage() {
           <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7, marginBottom: '16px' }}>
             Excelで社員一覧を作成し、CSV形式で保存してから取り込んでください。
             必要な列は「会社名、所属・職種、氏名、利用可否」です。
-            利用可否は「有効」または「無効」で入力してください。
+            同じ会社・所属・氏名が重複している場合は登録できません。
           </p>
 
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
@@ -692,7 +836,7 @@ export default function AdminEmployeesPage() {
                       <th style={{ padding: '10px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>行</th>
                       <th style={{ padding: '10px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>氏名</th>
                       <th style={{ padding: '10px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>会社名</th>
-                      <th style={{ padding: '10px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>所属・職種</th>
+                      <th style={{ padding: '10px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>所属</th>
                       <th style={{ padding: '10px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>利用可否</th>
                       <th style={{ padding: '10px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>処理</th>
                       <th style={{ padding: '10px', color: '#fff', fontSize: '12px', textAlign: 'left' }}>確認結果</th>
@@ -708,14 +852,16 @@ export default function AdminEmployeesPage() {
                         }}
                       >
                         <td style={{ padding: '10px', fontSize: '13px', color: '#475569' }}>{row.rowNumber}</td>
-                        <td style={{ padding: '10px', fontSize: '13px', color: '#0f172a' }}>
+                        <td style={{ padding: '10px', fontSize: '13px', color: '#0f172a', fontWeight: 'bold' }}>
                           {row.last_name} {row.first_name}
                         </td>
                         <td style={{ padding: '10px', fontSize: '13px', color: '#0f172a' }}>{row.company}</td>
                         <td style={{ padding: '10px', fontSize: '13px', color: '#0f172a' }}>{row.affiliation}</td>
                         <td style={{ padding: '10px', fontSize: '13px', color: '#0f172a' }}>{row.is_active_label}</td>
-                        <td style={{ padding: '10px', fontSize: '13px', color: '#0f172a' }}>{row.action}</td>
-                        <td style={{ padding: '10px', fontSize: '13px', color: row.errors.length > 0 ? '#ef4444' : '#16a34a' }}>
+                        <td style={{ padding: '10px', fontSize: '13px', color: row.action === '更新' ? '#2563eb' : '#16a34a', fontWeight: 'bold' }}>
+                          {row.action}
+                        </td>
+                        <td style={{ padding: '10px', fontSize: '13px', color: row.errors.length > 0 ? '#ef4444' : '#16a34a', fontWeight: 'bold' }}>
                           {row.errors.length > 0 ? row.errors.join(' / ') : 'OK'}
                         </td>
                       </tr>
@@ -857,6 +1003,7 @@ export default function AdminEmployeesPage() {
                 color: message.startsWith('✅') ? '#16a34a' : '#ef4444',
                 fontSize: '14px',
                 marginBottom: '12px',
+                fontWeight: 'bold',
               }}
             >
               {message}
@@ -902,101 +1049,282 @@ export default function AdminEmployeesPage() {
           </div>
         </div>
 
-        <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '16px' }}>社員一覧</h2>
         <div
           style={{
-            backgroundColor: '#fff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '12px',
+            marginBottom: '18px',
           }}
         >
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#1e3a5f' }}>
-                <th style={{ padding: '14px 20px', textAlign: 'left', color: '#fff', fontSize: '13px' }}>氏名</th>
-                <th style={{ padding: '14px 20px', textAlign: 'left', color: '#fff', fontSize: '13px' }}>会社名</th>
-                <th style={{ padding: '14px 20px', textAlign: 'left', color: '#fff', fontSize: '13px' }}>所属</th>
-                <th style={{ padding: '14px 20px', textAlign: 'left', color: '#fff', fontSize: '13px' }}>利用可否</th>
-                <th style={{ padding: '14px 20px', textAlign: 'center', color: '#fff', fontSize: '13px' }}>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.length === 0 && (
-                <tr>
-                  <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
-                    社員が登録されていません
-                  </td>
-                </tr>
-              )}
-              {employees.map((emp, i) => (
-                <tr
-                  key={emp.id}
+          <div
+            style={{
+              backgroundColor: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '14px 16px',
+            }}
+          >
+            <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>登録人数</div>
+            <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e3a5f' }}>{employees.length}名</div>
+          </div>
+
+          <div
+            style={{
+              backgroundColor: duplicateEmployeeCount > 0 ? '#fef2f2' : '#fff',
+              border: `1px solid ${duplicateEmployeeCount > 0 ? '#fecaca' : '#e2e8f0'}`,
+              borderRadius: '12px',
+              padding: '14px 16px',
+            }}
+          >
+            <div style={{ fontSize: '12px', color: duplicateEmployeeCount > 0 ? '#991b1b' : '#64748b', marginBottom: '4px' }}>
+              重複確認
+            </div>
+            <div style={{ fontSize: '22px', fontWeight: 'bold', color: duplicateEmployeeCount > 0 ? '#dc2626' : '#16a34a' }}>
+              {duplicateEmployeeCount > 0 ? duplicateEmployeeCount + '件' : 'OK'}
+            </div>
+          </div>
+        </div>
+
+        <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '16px' }}>社員一覧</h2>
+
+        {employees.length === 0 && (
+          <div
+            style={{
+              backgroundColor: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '24px',
+              textAlign: 'center',
+              color: '#94a3b8',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            }}
+          >
+            社員が登録されていません
+          </div>
+        )}
+
+        {companyGroupNames.map((companyName) => {
+          const affiliationGroups = groupedEmployees[companyName]
+          const affiliationNames = Object.keys(affiliationGroups).sort((a, b) => {
+            const affiliationDiff = getAffiliationOrder(companyName, a) - getAffiliationOrder(companyName, b)
+            if (affiliationDiff !== 0) return affiliationDiff
+            return a.localeCompare(b, 'ja')
+          })
+
+          const companyCount = affiliationNames.reduce((total, affiliationName) => {
+            return total + affiliationGroups[affiliationName].length
+          }, 0)
+
+          return (
+            <section
+              key={companyName}
+              style={{
+                backgroundColor: '#fff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '14px',
+                overflow: 'hidden',
+                marginBottom: '18px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: '#1e3a5f',
+                  color: '#fff',
+                  padding: '12px 18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ fontSize: '17px', fontWeight: 'bold' }}>{companyName}</div>
+                <div
                   style={{
-                    backgroundColor: i % 2 === 0 ? '#fff' : '#f8fafc',
-                    borderTop: '1px solid #e2e8f0',
+                    fontSize: '13px',
+                    color: '#1e3a5f',
+                    backgroundColor: '#bfdbfe',
+                    padding: '4px 12px',
+                    borderRadius: '999px',
+                    fontWeight: 'bold',
                   }}
                 >
-                  <td style={{ padding: '14px 20px', color: '#1e3a5f', fontSize: '14px', fontWeight: '500' }}>
-                    {emp.last_name} {emp.first_name}
-                  </td>
-                  <td style={{ padding: '14px 20px', color: '#64748b', fontSize: '14px' }}>{emp.company}</td>
-                  <td style={{ padding: '14px 20px', color: '#64748b', fontSize: '14px' }}>{emp.affiliation || '-'}</td>
-                  <td style={{ padding: '14px 20px', color: emp.is_active === false ? '#ef4444' : '#16a34a', fontSize: '14px' }}>
-                    {emp.is_active === false ? '無効' : '有効'}
-                  </td>
-                  <td style={{ padding: '14px 20px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <button
-                        onClick={() => handleEdit(emp)}
+                  {companyCount}名
+                </div>
+              </div>
+
+              <div style={{ padding: '12px' }}>
+                {affiliationNames.map((affiliationName) => {
+                  const affiliationEmployees = affiliationGroups[affiliationName]
+
+                  return (
+                    <div
+                      key={affiliationName}
+                      style={{
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        overflow: 'hidden',
+                        marginBottom: '12px',
+                      }}
+                    >
+                      <div
                         style={{
-                          padding: '6px 14px',
-                          backgroundColor: '#2563eb',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '13px',
+                          backgroundColor: '#f1f5f9',
+                          padding: '9px 12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                          borderBottom: '1px solid #e2e8f0',
                         }}
                       >
-                        修正
-                      </button>
-                      <button
-                        onClick={() => handleResetEmployeePassword(emp.id, emp.last_name + ' ' + emp.first_name)}
-                        style={{
-                          padding: '6px 14px',
-                          backgroundColor: '#f59e0b',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                        }}
-                      >
-                        パスワード初期化
-                      </button>
-                      <button
-                        onClick={() => handleDelete(emp.id, emp.last_name + ' ' + emp.first_name)}
-                        style={{
-                          padding: '6px 14px',
-                          backgroundColor: '#ef4444',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                        }}
-                      >
-                        削除
-                      </button>
+                        <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#334155' }}>{affiliationName}</div>
+                        <div
+                          style={{
+                            fontSize: '12px',
+                            color: '#475569',
+                            backgroundColor: '#fff',
+                            border: '1px solid #cbd5e1',
+                            padding: '3px 10px',
+                            borderRadius: '999px',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          {affiliationEmployees.length}名
+                        </div>
+                      </div>
+
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '720px' }}>
+                          <thead>
+                            <tr style={{ backgroundColor: '#f8fafc' }}>
+                              <th style={{ padding: '8px 12px', textAlign: 'left', color: '#475569', fontSize: '12px' }}>
+                                氏名
+                              </th>
+                              <th style={{ padding: '8px 12px', textAlign: 'left', color: '#475569', fontSize: '12px' }}>
+                                状態
+                              </th>
+                              <th style={{ padding: '8px 12px', textAlign: 'center', color: '#475569', fontSize: '12px' }}>
+                                操作
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {affiliationEmployees.map((emp, i) => {
+                              const duplicateKey = makeDuplicateKey(
+                                emp.company || '',
+                                emp.affiliation || '',
+                                emp.last_name || '',
+                                emp.first_name || ''
+                              )
+                              const isDuplicate = duplicateKeysInExistingEmployees.has(duplicateKey)
+
+                              return (
+                                <tr
+                                  key={emp.id}
+                                  style={{
+                                    backgroundColor: isDuplicate ? '#fef2f2' : i % 2 === 0 ? '#fff' : '#f8fafc',
+                                    borderTop: '1px solid #e2e8f0',
+                                  }}
+                                >
+                                  <td
+                                    style={{
+                                      padding: '10px 12px',
+                                      color: isDuplicate ? '#991b1b' : '#1e3a5f',
+                                      fontSize: '14px',
+                                      fontWeight: 'bold',
+                                    }}
+                                  >
+                                    {emp.last_name} {emp.first_name}
+                                    {isDuplicate && (
+                                      <span
+                                        style={{
+                                          marginLeft: '8px',
+                                          padding: '2px 8px',
+                                          backgroundColor: '#dc2626',
+                                          color: '#fff',
+                                          borderRadius: '999px',
+                                          fontSize: '11px',
+                                          fontWeight: 'bold',
+                                        }}
+                                      >
+                                        重複
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: '10px 12px',
+                                      color: emp.is_active === false ? '#ef4444' : '#16a34a',
+                                      fontSize: '13px',
+                                      fontWeight: 'bold',
+                                    }}
+                                  >
+                                    {emp.is_active === false ? '無効' : '有効'}
+                                  </td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                      <button
+                                        onClick={() => handleEdit(emp)}
+                                        style={{
+                                          padding: '5px 12px',
+                                          backgroundColor: '#2563eb',
+                                          color: '#fff',
+                                          border: 'none',
+                                          borderRadius: '6px',
+                                          cursor: 'pointer',
+                                          fontSize: '12px',
+                                          fontWeight: 'bold',
+                                        }}
+                                      >
+                                        修正
+                                      </button>
+                                      <button
+                                        onClick={() => handleResetEmployeePassword(emp.id, emp.last_name + ' ' + emp.first_name)}
+                                        style={{
+                                          padding: '5px 12px',
+                                          backgroundColor: '#f59e0b',
+                                          color: '#fff',
+                                          border: 'none',
+                                          borderRadius: '6px',
+                                          cursor: 'pointer',
+                                          fontSize: '12px',
+                                          fontWeight: 'bold',
+                                        }}
+                                      >
+                                        PW初期化
+                                      </button>
+                                      <button
+                                        onClick={() => handleDelete(emp.id, emp.last_name + ' ' + emp.first_name)}
+                                        style={{
+                                          padding: '5px 12px',
+                                          backgroundColor: '#ef4444',
+                                          color: '#fff',
+                                          border: 'none',
+                                          borderRadius: '6px',
+                                          cursor: 'pointer',
+                                          fontSize: '12px',
+                                          fontWeight: 'bold',
+                                        }}
+                                      >
+                                        削除
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })}
       </main>
 
       <footer style={{ borderTop: '1px solid #e2e8f0', padding: '20px 40px', textAlign: 'center', marginTop: '40px' }}>
