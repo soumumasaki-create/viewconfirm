@@ -377,9 +377,31 @@ export default function ChannelsPage() {
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
       <header style={{ backgroundColor: '#1e3a5f', padding: '0 40px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '36px', height: '36px', backgroundColor: '#2563eb', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>📺</div>
+          <div
+            style={{
+              width: '44px',
+              height: '44px',
+              backgroundColor: '#fff',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              padding: '4px',
+            }}
+          >
+            <img
+              src="/mirai-logo.jpg"
+              alt="MIRAI"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          </div>
           <div>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff' }}>ViewConfirm</div>
             <div style={{ fontSize: '10px', color: '#93c5fd', letterSpacing: '0.1em' }}>MIRAI GROUP</div>
           </div>
         </div>
@@ -733,7 +755,7 @@ export default function ChannelsPage() {
       )}
 
       <footer style={{ borderTop: '1px solid #e2e8f0', padding: '20px 40px', textAlign: 'center', marginTop: '40px' }}>
-        <p style={{ color: '#94a3b8', fontSize: '12px' }}>© 2026 MIRAI Group. ViewConfirm.</p>
+        <p style={{ color: '#94a3b8', fontSize: '12px' }}>© 2026 MIRAI Group.</p>
       </footer>
     </div>
   )
