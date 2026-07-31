@@ -199,42 +199,18 @@ export default function LoginPage() {
           alignItems: 'center',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img
+            src="/mirai-logo.jpg"
+            alt="MIRAI"
             style={{
-              width: '36px',
-              height: '36px',
-              backgroundColor: '#2563eb',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
+              width: '72px',
+              height: '34px',
+              objectFit: 'contain',
+              display: 'block',
             }}
-          >
-            📺
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: '16px',
-                fontWeight: 'bold',
-                color: '#fff',
-                letterSpacing: '0.05em',
-              }}
-            >
-              ViewConfirm
-            </div>
-            <div
-              style={{
-                fontSize: '10px',
-                color: '#93c5fd',
-                letterSpacing: '0.1em',
-              }}
-            >
-              MIRAI GROUP
-            </div>
-          </div>
+          />
+          <div style={{ fontSize: '9px', color: '#93c5fd', letterSpacing: '0.1em' }}>MIRAI GROUP</div>
         </div>
       </header>
 
@@ -502,7 +478,7 @@ export default function LoginPage() {
       </div>
 
       <footer style={{ padding: '20px 40px', textAlign: 'center' }}>
-        <p style={{ color: '#94a3b8', fontSize: '12px' }}>© 2026 MIRAI Group. ViewConfirm.</p>
+        <p style={{ color: '#94a3b8', fontSize: '12px' }}>© 2026 MIRAI Group.</p>
       </footer>
     </div>
   )
