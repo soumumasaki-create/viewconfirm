@@ -412,20 +412,29 @@ export default function EpisodesPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
-              width: '30px',
-              height: '30px',
-              backgroundColor: '#2563eb',
-              borderRadius: '7px',
+              width: '36px',
+              height: '36px',
+              backgroundColor: '#fff',
+              borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '15px',
+              overflow: 'hidden',
+              padding: '4px',
             }}
           >
-            📺
+            <img
+              src="/mirai-logo.jpg"
+              alt="MIRAI"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
           </div>
           <div>
-            <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>ViewConfirm</div>
             <div style={{ fontSize: '9px', color: '#93c5fd', letterSpacing: '0.1em' }}>
               MIRAI GROUP
             </div>
