@@ -40,7 +40,6 @@ export default function Home() {
             />
           </div>
           <div>
-            <div style={{ fontSize:'16px', fontWeight:'bold', color:'#fff', letterSpacing:'0.05em' }}>ViewConfirm</div>
             <div style={{ fontSize:'10px', color:'#93c5fd', letterSpacing:'0.1em' }}>MIRAI GROUP</div>
           </div>
         </div>
@@ -127,7 +126,7 @@ export default function Home() {
       </main>
 
       <footer style={{ borderTop:'1px solid #e2e8f0', padding:'20px 40px', textAlign:'center' }}>
-        <p style={{ color:'#94a3b8', fontSize:'12px' }}>© 2026 MIRAI Group. ViewConfirm.</p>
+        <p style={{ color:'#94a3b8', fontSize:'12px' }}>© 2026 MIRAI Group.</p>
       </footer>
     </div>
   )
