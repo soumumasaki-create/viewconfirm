@@ -1140,22 +1140,29 @@ export default function WatchPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0' }}>
           <div
             style={{
-              width: '36px',
-              height: '36px',
-              backgroundColor: '#2563eb',
-              borderRadius: '8px',
+              width: '44px',
+              height: '44px',
+              backgroundColor: '#fff',
+              borderRadius: '10px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '18px',
-              color: '#fff',
-              fontWeight: 'bold',
+              overflow: 'hidden',
+              padding: '4px',
             }}
           >
-            VC
+            <img
+              src="/mirai-logo.jpg"
+              alt="MIRAI"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
           </div>
           <div>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff' }}>ViewConfirm</div>
             <div style={{ fontSize: '10px', color: '#93c5fd', letterSpacing: '0.1em' }}>
               MIRAI GROUP
             </div>
