@@ -415,25 +415,18 @@ export default function AdminDashboardPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
+          <img
+            src="/mirai-logo.jpg"
+            alt="MIRAI"
             style={{
-              width: '32px',
-              height: '32px',
-              backgroundColor: '#2563eb',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '16px',
+              width: '72px',
+              height: '34px',
+              objectFit: 'contain',
+              display: 'block',
             }}
-          >
-            📺
-          </div>
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>ViewConfirm</div>
-            <div style={{ fontSize: '9px', color: '#93c5fd', letterSpacing: '0.1em' }}>
-              MIRAI GROUP
-            </div>
+          />
+          <div style={{ fontSize: '9px', color: '#93c5fd', letterSpacing: '0.1em' }}>
+            MIRAI GROUP
           </div>
         </div>
       </header>
@@ -1391,7 +1384,7 @@ export default function AdminDashboardPage() {
           marginTop: '32px',
         }}
       >
-        <p style={{ color: '#94a3b8', fontSize: '11px' }}>© 2026 MIRAI Group. ViewConfirm.</p>
+        <p style={{ color: '#94a3b8', fontSize: '11px' }}>© 2026 MIRAI Group.</p>
       </footer>
     </div>
   )
